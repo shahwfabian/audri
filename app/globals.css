@@ -1,26 +1,305 @@
 @import "tailwindcss";
 
+/* ── Audri Design System — Black × Gold ─────────────────────────────────── */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Gold */
+  --gold:        #C9A84C;
+  --gold-light:  #E2C675;
+  --gold-bright: #F0D890;
+  --gold-dark:   #8A6E30;
+  --gold-10:     rgba(201, 168, 76, 0.10);
+  --gold-15:     rgba(201, 168, 76, 0.15);
+  --gold-25:     rgba(201, 168, 76, 0.25);
+  --gold-40:     rgba(201, 168, 76, 0.40);
+
+  /* Surfaces */
+  --bg:        #080808;
+  --surface:   #0F0F0F;
+  --surface-2: #161616;
+  --surface-3: #1E1E1E;
+
+  /* Borders */
+  --border:      #1A1A1A;
+  --border-2:    #272727;
+  --border-3:    #333333;
+  --border-gold: rgba(201, 168, 76, 0.30);
+
+  /* Text */
+  --text:   #F0EDE4;
+  --text-2: #8C8884;
+  --text-3: #46443F;
+
+  /* Semantic */
+  --green: #20C878;
+  --red:   #E55050;
+  --amber: #F0A030;
+
+  /* shadcn / Tailwind v4 mappings */
+  --background:            var(--bg);
+  --surface-raised:        var(--surface-2);
+  --surface-overlay:       var(--surface-3);
+  --foreground:            var(--text);
+  --muted:                 var(--text-2);
+  --muted-foreground:      var(--text-3);
+  --border-strong:         var(--border-2);
+  --success:               var(--green);
+  --danger:                var(--red);
+  --warning:               var(--amber);
+  --info:                  var(--gold);
+  --sidebar-width:         260px;
+  --radius:                0.75rem;
+  --radius-sm:             calc(var(--radius) - 4px);
+  --radius-md:             var(--radius);
+  --radius-lg:             calc(var(--radius) + 6px);
+  --radius-xl:             calc(var(--radius) + 14px);
+
+  --color-background:           var(--bg);
+  --color-foreground:           var(--text);
+  --color-primary:              var(--gold);
+  --color-primary-foreground:   #080808;
+  --color-secondary:            var(--surface-2);
+  --color-secondary-foreground: var(--text);
+  --color-muted:                var(--surface);
+  --color-muted-foreground:     var(--text-2);
+  --color-accent:               var(--gold-10);
+  --color-accent-foreground:    var(--gold-light);
+  --color-destructive:          var(--red);
+  --color-border:               var(--border);
+  --color-input:                var(--border-2);
+  --color-ring:                 var(--gold);
+  --color-card:                 var(--surface);
+  --color-card-foreground:      var(--text);
+  --color-popover:              var(--surface-2);
+  --color-popover-foreground:   var(--text);
+  --font-sans:                  var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono:                  var(--font-geist-mono), monospace;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ── Base ───────────────────────────────────────────────────────────────── */
+
+* { border-color: var(--border); }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-3); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* ── Gradients ──────────────────────────────────────────────────────────── */
+
+.gradient-brand {
+  background: linear-gradient(135deg, #C9A84C 0%, #E2C675 100%);
+}
+.gradient-gold {
+  background: linear-gradient(135deg, #C9A84C 0%, #F0D890 50%, #C9A84C 100%);
+}
+.gradient-gold-subtle {
+  background: linear-gradient(135deg, rgba(201,168,76,0.15) 0%, rgba(201,168,76,0.05) 100%);
+}
+.gradient-success {
+  background: linear-gradient(135deg, #20C878 0%, #0891b2 100%);
+}
+.text-gradient {
+  background: linear-gradient(135deg, #C9A84C 0%, #F0D890 60%, #E2C675 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Card utilities ─────────────────────────────────────────────────────── */
+
+.card-glow {
+  box-shadow: 0 0 0 1px var(--gold-15), 0 8px 32px var(--gold-10);
+}
+.card-glow-hover {
+  transition: all 0.2s ease;
+}
+.card-glow-hover:hover {
+  border-color: var(--border-gold) !important;
+  box-shadow: 0 0 0 1px var(--gold-15), 0 8px 40px var(--gold-10);
+}
+
+/* ── Input dark ─────────────────────────────────────────────────────────── */
+
+.input-dark {
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input-dark:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold-10);
+}
+.input-dark::placeholder { color: var(--text-3); }
+
+/* ── Button gold ────────────────────────────────────────────────────────── */
+
+.btn-gold {
+  background: var(--gold);
+  color: #080808;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  transition: all 0.15s ease;
+}
+.btn-gold:hover {
+  background: var(--gold-light);
+  box-shadow: 0 0 24px var(--gold-15), 0 4px 12px rgba(0,0,0,0.4);
+}
+.btn-gold:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Button ghost ───────────────────────────────────────────────────────── */
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-2);
+  color: var(--text-2);
+  border-radius: var(--radius-md);
+  transition: all 0.15s ease;
+}
+.btn-ghost:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: var(--gold-10);
+}
+
+/* ── Badges ─────────────────────────────────────────────────────────────── */
+
+.badge-gold  { background: var(--gold-10); color: var(--gold-light); border: 1px solid var(--gold-25); }
+.badge-green { background: rgba(32,200,120,0.08); color: #20C878; border: 1px solid rgba(32,200,120,0.20); }
+.badge-red   { background: rgba(229,80,80,0.08); color: #E55050; border: 1px solid rgba(229,80,80,0.20); }
+.badge-amber { background: rgba(240,160,48,0.08); color: #F0A030; border: 1px solid rgba(240,160,48,0.20); }
+.badge-gray  { background: var(--surface-3); color: var(--text-2); border: 1px solid var(--border-2); }
+
+/* ── Score ring ─────────────────────────────────────────────────────────── */
+
+@keyframes score-fill { from { stroke-dashoffset: 283; } }
+
+/* ── Animations ─────────────────────────────────────────────────────────── */
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
+.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.shimmer-gold {
+  background: linear-gradient(90deg, var(--gold-dark) 0%, var(--gold-bright) 50%, var(--gold-dark) 100%);
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px var(--gold-10); }
+  50%       { box-shadow: 0 0 40px var(--gold-25); }
+}
+.glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
+
+/* ── Gold line decoration ───────────────────────────────────────────────── */
+.gold-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+/* ── LEGACY LIGHT-THEME OVERRIDES ─────────────────────────────────────────
+   Converts every remaining light-themed utility class to the black/gold
+   system so no page can ever render white-on-white. Unlayered = wins over
+   Tailwind's layered utilities. */
+
+/* Surfaces */
+.bg-white { background-color: var(--surface) !important; }
+.bg-gray-50, .bg-gray-100 { background-color: var(--surface-2) !important; }
+.bg-white\/70 { background-color: rgba(255,255,255,0.04) !important; }
+.hover\:bg-gray-50:hover { background-color: var(--surface-2) !important; }
+
+/* Borders */
+.border-gray-100, .border-gray-200, .border-gray-300 { border-color: var(--border) !important; }
+.hover\:border-gray-200:hover, .hover\:border-gray-300:hover { border-color: var(--border-2) !important; }
+.border-b.border-gray-300 { border-color: var(--border-2) !important; }
+
+/* Text */
+.text-gray-900, .text-gray-800 { color: var(--text) !important; }
+.text-gray-700, .text-gray-600, .text-gray-500 { color: var(--text-2) !important; }
+.text-gray-400, .text-gray-300, .text-gray-200 { color: var(--text-3) !important; }
+
+/* Blue → Gold (primary actions & accents) */
+.bg-blue-600, .bg-blue-700 {
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%) !important;
+  color: #080808 !important;
+}
+.bg-blue-600.text-white, .bg-blue-700.text-white { color: #080808 !important; }
+.hover\:bg-blue-700:hover { background: var(--gold-light) !important; }
+.text-blue-500, .text-blue-600, .text-blue-700, .text-blue-800 { color: var(--gold) !important; }
+.bg-blue-50 { background-color: var(--gold-10) !important; }
+.border-blue-100, .border-blue-200 { border-color: var(--gold-25) !important; }
+.hover\:bg-blue-50:hover { background-color: var(--gold-10) !important; }
+.text-blue-200, .text-blue-50 { color: rgba(8,8,8,0.6) !important; }
+.bg-blue-500 { background: var(--gold) !important; }
+.focus\:ring-blue-500:focus { --tw-ring-color: var(--gold-25) !important; }
+
+/* Violet → Gold-dark */
+.bg-violet-600 { background: var(--gold-dark) !important; color: #F0EDE4 !important; }
+.hover\:bg-violet-700:hover { background: var(--gold) !important; color: #080808 !important; }
+.text-violet-600, .text-violet-700 { color: var(--gold-light) !important; }
+.bg-violet-50 { background-color: var(--gold-10) !important; }
+
+/* Gradient banners (blue→violet) → gold glow on dark */
+.from-blue-600 { --tw-gradient-from: #1A1508 !important; }
+.to-violet-600 { --tw-gradient-to: #241C0A !important; }
+.from-blue-50 { --tw-gradient-from: #080808 !important; }
+.to-indigo-50 { --tw-gradient-to: #0D0C08 !important; }
+
+/* Amber (warnings) */
+.bg-amber-50 { background-color: rgba(245,158,11,0.08) !important; }
+.border-amber-100, .border-amber-200 { border-color: rgba(245,158,11,0.25) !important; }
+.text-amber-600, .text-amber-700, .text-amber-800 { color: #F5B84B !important; }
+.bg-amber-600 { background: #B45309 !important; }
+.hover\:bg-amber-700:hover { background: #92400E !important; }
+
+/* Green (success) */
+.bg-green-50, .bg-green-100, .bg-emerald-50 { background-color: rgba(32,200,120,0.08) !important; }
+.border-green-200 { border-color: rgba(32,200,120,0.25) !important; }
+.text-green-600, .text-green-700, .text-green-800 { color: var(--green) !important; }
+.text-emerald-600 { color: var(--green) !important; }
+
+/* Red (errors) */
+.bg-red-50 { background-color: rgba(229,80,80,0.08) !important; }
+.border-red-200 { border-color: rgba(229,80,80,0.25) !important; }
+.text-red-500, .text-red-600, .text-red-700, .text-red-800 { color: var(--red) !important; }
+
+/* Orange / Yellow (severity tiers) */
+.bg-orange-50 { background-color: rgba(249,115,22,0.08) !important; }
+.border-orange-200 { border-color: rgba(249,115,22,0.25) !important; }
+.text-orange-500, .text-orange-600 { color: #FB923C !important; }
+.bg-yellow-50 { background-color: rgba(234,179,8,0.08) !important; }
+.border-yellow-200 { border-color: rgba(234,179,8,0.25) !important; }
+.text-yellow-500, .text-yellow-600 { color: #FACC15 !important; }
+
+/* Shadow softening on dark */
+.shadow-xl, .shadow-sm { box-shadow: 0 0 32px rgba(0,0,0,0.5) !important; }

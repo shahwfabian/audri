@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Encrypted user store + generated secret (never commit)
+/data/users.json
+/data/.secret
+
+# ...but do commit the template
+!.env.example
