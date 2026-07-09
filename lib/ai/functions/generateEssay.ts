@@ -17,6 +17,8 @@ interface EssayGenerationInput {
   funderIntelligence?: string;
   /** Anything extra the student typed for THIS scholarship — context, memories, details */
   extraNotes?: string;
+  /** Selected voice/tone directive from the 1,440-voice library */
+  toneDirective?: string;
   apiKey?: string;
 }
 
@@ -148,6 +150,7 @@ LOCKED STRATEGY:
 - Final line must leave: ${strategy.closingLineDirection ?? "forward motion and emotional residue — never a neat conclusion"}
 - Do NOT commit: ${strategy.warningsToAvoid.join("; ")}
 ${input.funderIntelligence ? `\nFUNDER INTELLIGENCE (align to this — never quote or flatter it):\n${input.funderIntelligence}\n` : ""}
+${input.toneDirective ? `\nVOICE & TONE (the student chose this — honor it in every sentence):\n${input.toneDirective}\n` : ""}
 
 THE STUDENT'S REAL MATERIAL (you may not use anything not present here):
 ${buildStudentDossier(input)}

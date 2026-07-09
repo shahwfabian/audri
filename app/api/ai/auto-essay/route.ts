@@ -3,6 +3,7 @@ import { parseScholarshipWithAI } from "@/lib/scholarships/parseScholarshipWithA
 import { fetchScholarshipPage, fetchFunderBackground, isLikelyUrl } from "@/lib/scholarships/fetchFromUrl";
 import { generateEssayStrategy, generateEssayDraft } from "@/lib/ai/functions/generateEssay";
 import { callAI } from "@/lib/ai/client";
+import { getToneDirective } from "@/lib/ai/tones";
 import { checkEssayQuota, recordEssay, FREE_ESSAY_LIMIT } from "@/lib/auth/users";
 import { verifySession, bearerFrom } from "@/lib/auth/crypto";
 import { friendlyError } from "@/lib/errors";
@@ -18,7 +19,7 @@ import { friendlyError } from "@/lib/errors";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { pastedText, url, profile, stories, extraNotes, promptOverride, wordLimitOverride } = body;
+    const { pastedText, url, profile, stories, extraNotes, toneId, promptOverride, wordLimitOverride } = body;
     const apiKey = req.headers.get("x-audri-api-key") ?? undefined;
 
     if (!profile) {
@@ -140,6 +141,7 @@ ${funderBackground}`,
       scholarshipMission: scholarship.description ?? undefined,
       funderIntelligence,
       extraNotes: extraNotes?.trim() || undefined,
+      toneDirective: getToneDirective(toneId),
       apiKey,
     };
 

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useAppStore } from "@/lib/store";
 import { generateId } from "@/lib/utils";
 import { safeApiResponse } from "@/lib/errors";
+import { TonePicker } from "@/components/TonePicker";
+import { DEFAULT_TONE_ID } from "@/lib/ai/tones";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -63,6 +65,7 @@ export default function GeneratePage() {
   const [pastedText, setPastedText] = useState("");
   const [scholarshipUrl, setScholarshipUrl] = useState("");
   const [extraNotes, setExtraNotes] = useState("");
+  const [toneId, setToneId] = useState<string>(DEFAULT_TONE_ID);
   const [showNotes, setShowNotes] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [stage, setStage] = useState(0);
@@ -122,6 +125,7 @@ export default function GeneratePage() {
           profile,
           stories: profile.stories ?? [],
           extraNotes,
+          toneId,
           promptOverride,
           wordLimitOverride,
         }),
@@ -268,7 +272,15 @@ export default function GeneratePage() {
           />
         )}
 
-        <div className="flex items-center justify-between mt-4">
+        {/* Voice & tone */}
+        <div className="mt-5">
+          <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--gold)" }}>
+            Voice &amp; tone
+          </label>
+          <TonePicker value={toneId} onChange={setToneId} />
+        </div>
+
+        <div className="flex items-center justify-between mt-5">
           <p className="text-xs" style={{ color: "var(--text-3)" }}>
             {scholarshipUrl.trim()
               ? "Link ready — Audri will fetch and research it"
