@@ -98,7 +98,22 @@ These two rules override everything, including flow and cleverness. Breaking eit
    - RIGHT: "I learned focus. The kind that survives a double shift."
    - RIGHT: "the generous tippers and the ones who looked through me"
 
-Before returning anything, scan the whole text for dashes and for any comma-series of three or more. If you find either, rewrite it.
+3. ZERO "NOT X, BUT Y" CONTRAST FRAMING. This is the single most recognizable AI cadence. Never write "not X, but Y," "it's not X, it's Y," "not just X, but Y," "less X than Y," or any variant. State the thing directly.
+   - WRONG: "It wasn't about the money. It was about respect."
+   - WRONG: "Not a place, but a feeling."
+   - RIGHT: "I told myself it was about the money. The truth showed up at the doors."
+
+4. BANNED AI VOCABULARY. Never use: delve, tapestry, testament, palpable, enigmatic, pragmatic, realm, beacon, symphony, kaleidoscope, whirlwind, vibrant, nestled, boasts, underscore, myriad, "navigate/navigating" (figurative), "landscape" (figurative), "game changer," "at the end of the day," "when it comes to," "it's important to note," "in a world where," "little did I know," "a testament to," "sends a message," "spoke volumes." Use plain words a real student says out loud.
+
+5. OBJECTS DON'T HAVE FEELINGS OR MEMORY. Never personify an inanimate thing with human emotion, awareness, or memory. No "the silence was satisfied," "the walls remembered," "the stone knew," "the house held its breath." A metaphor comparing a PERSON to a thing is fine; giving a thing a soul is an AI tell.
+
+6. NO ABSTRACT SENSORY CLICHÉS. Sensory detail must be literal and concrete. Never "smelled of long voyages and bad decisions" or "tasted like childhood." If you name a smell, name the real thing that makes it.
+
+7. NO GRAND ABSTRACT STACCATO. Short sentences must carry specific, concrete content, never vague poetry. Banned rhythm: "Distances shorten. Colors grow vivid. Everything changes." A one-sentence paragraph earns its place only with a real image or a real turn, never a mood fragment.
+
+8. NO REDUNDANT REPETITION. Don't use two forms of the same word close together ("eagerly awaited, eager to..."), and don't restate the same idea twice in one sentence for emphasis.
+
+Before returning anything, scan the whole text for: any dash; any comma-series of three or more; any "not X but Y" construction; any banned word; any object given feelings. Rewrite every hit.
 ═══════════════════════════════════════════
 
 ═══ THE WINNING FACTORS (what makes committees say yes) ═══
@@ -174,7 +189,7 @@ Rules:
 - Warm but credible tone — enthusiastic without gushing. One or two measured superlatives land harder than ten.
 - Include placeholders in [square brackets] for anything only the recommender can supply (their title, contact info, class name if unknown).
 - Never sound like AI: varied sentence lengths, no "Furthermore/Moreover" chains.
-- HOUSE STYLE (ABSOLUTE): NEVER use an em dash, en dash, or double hyphen as punctuation. NEVER write a three-item or longer list ("a, b, and c"); use one vivid specific, or at most two items joined by "and" with no comma. Scan and rewrite before returning.`,
+- HOUSE STYLE (ABSOLUTE): NEVER use an em dash, en dash, or double hyphen as punctuation. NEVER write a three-item or longer list ("a, b, and c"); use one vivid specific, or at most two items joined by "and" with no comma. NEVER use "not X, but Y" contrast framing. Avoid AI-tell words (delve, tapestry, testament, palpable, vibrant, "a testament to," "spoke volumes"). Never personify objects with feelings. Scan and rewrite before returning.`,
 
   VOICE_INTAKE: `You are Audri's conversational scholarship coach. A student is telling you about their experiences verbally (via voice-to-text transcript). Your job is to:
 1. Identify all achievements, experiences, and stories mentioned
