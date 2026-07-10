@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callAI } from "@/lib/ai/client";
 import { SYSTEM_PROMPTS } from "@/lib/ai/prompts/system";
+import { enforceHouseStyle } from "@/lib/ai/style";
 import { friendlyError } from "@/lib/errors";
 
 export async function POST(req: NextRequest) {
@@ -53,7 +54,7 @@ Write the complete letter now. Standard business letter body (no date/address bl
 
     const letter = await callAI(prompt, SYSTEM_PROMPTS.RECOMMENDER, { maxTokens: 2048, apiKey });
 
-    return NextResponse.json({ letter });
+    return NextResponse.json({ letter: enforceHouseStyle(letter) });
   } catch (err) {
     return NextResponse.json({ error: friendlyError(err) }, { status: 500 });
   }

@@ -85,6 +85,22 @@ FINAL NARRATIVE AUDIT (run before returning ANY essay):
 If any answer is no, revise before returning.
 ═══════════════════════════════════════════
 
+═══ HOUSE STYLE — ABSOLUTE, NON-NEGOTIABLE ═══
+These two rules override everything, including flow and cleverness. Breaking either one is an automatic failure; rewrite until both hold.
+
+1. ZERO EM DASHES. Never use an em dash (—), an en dash used as a dash (–), or a double hyphen (--). Not once. Where you would reach for a dash, use a period, a comma, or restructure the sentence. Hyphens inside compound words (first-generation, show-don't-tell) are fine; dashes as punctuation are forbidden.
+   - WRONG: "The job taught me everything — patience, most of all."
+   - RIGHT: "The job taught me everything. Patience, most of all."
+
+2. ZERO TRICOLONS AND ZERO STACKED LISTS. Never write a three-item (or longer) series like "apples, bananas, and oranges." No "X, Y, and Z" enumerations, no rule-of-three cadence. Make the point with ONE vivid specific, or at most TWO items joined by "and" with no comma. If you catch yourself listing three things, cut it to one and go deeper on that one.
+   - WRONG: "I learned focus, discipline, and grit."
+   - WRONG: "the generous, the forgetful, the ones who looked through me"
+   - RIGHT: "I learned focus. The kind that survives a double shift."
+   - RIGHT: "the generous tippers and the ones who looked through me"
+
+Before returning anything, scan the whole text for dashes and for any comma-series of three or more. If you find either, rewrite it.
+═══════════════════════════════════════════
+
 ═══ THE WINNING FACTORS (what makes committees say yes) ═══
 A winning essay goes beyond listing achievements: it tells an authentic story, demonstrates resilience, and proves the student's goals align with the funder's mission.
 
@@ -157,7 +173,8 @@ Rules:
 - Professional letter structure: how the recommender knows the student and for how long → 2-3 specific strength paragraphs each grounded in one concrete example → a direct, confident endorsement tied to the scholarship's purpose.
 - Warm but credible tone — enthusiastic without gushing. One or two measured superlatives land harder than ten.
 - Include placeholders in [square brackets] for anything only the recommender can supply (their title, contact info, class name if unknown).
-- Never sound like AI: varied sentence lengths, no "Furthermore/Moreover" chains, no triads everywhere.`,
+- Never sound like AI: varied sentence lengths, no "Furthermore/Moreover" chains.
+- HOUSE STYLE (ABSOLUTE): NEVER use an em dash, en dash, or double hyphen as punctuation. NEVER write a three-item or longer list ("a, b, and c"); use one vivid specific, or at most two items joined by "and" with no comma. Scan and rewrite before returning.`,
 
   VOICE_INTAKE: `You are Audri's conversational scholarship coach. A student is telling you about their experiences verbally (via voice-to-text transcript). Your job is to:
 1. Identify all achievements, experiences, and stories mentioned

@@ -2,6 +2,7 @@
 
 import { callAI, callAIJSON } from "@/lib/ai/client";
 import { SYSTEM_PROMPTS } from "@/lib/ai/prompts/system";
+import { enforceHouseStyle } from "@/lib/ai/style";
 import type { StudentProfile, Story, EssayScores, EssayFeedback } from "@/lib/types";
 
 interface EssayGenerationInput {
@@ -171,13 +172,15 @@ FINAL NARRATIVE AUDIT — run every question before you output; if any answer is
 11. Would THIS funder finish it thinking "this student is what we fund" — alignment embodied, never announced?
 12. Does the reader feel they are investing in a rising student, not rescuing a hardship case?
 13. Is it under the word limit with every question in the prompt answered?
+14. HOUSE STYLE: zero em dashes anywhere, and zero three-item lists / tricolons. If either appears, rewrite before returning.
 
 Output ONLY the essay text — no title, no labels, no preamble.`;
 
-  return callAI(prompt, SYSTEM_PROMPTS.ESSAY_WRITER, {
+  const draft = await callAI(prompt, SYSTEM_PROMPTS.ESSAY_WRITER, {
     maxTokens: 3000,
     apiKey: input.apiKey,
   });
+  return enforceHouseStyle(draft);
 }
 
 interface EssayCritiqueResult {
@@ -250,7 +253,10 @@ WORD LIMIT: ${wordLimit ?? "Not specified"}
 ORIGINAL ESSAY:
 ${essay}
 
+HOUSE STYLE (ABSOLUTE): zero em dashes, zero three-item lists / tricolons.
+
 Output only the revised essay text. No title, no labels, no explanation.`;
 
-  return callAI(prompt, SYSTEM_PROMPTS.ESSAY_WRITER, { maxTokens: 3000, apiKey });
+  const revised = await callAI(prompt, SYSTEM_PROMPTS.ESSAY_WRITER, { maxTokens: 3000, apiKey });
+  return enforceHouseStyle(revised);
 }
