@@ -179,7 +179,7 @@ export default function GapAnalysisPage() {
 
           {/* Top priorities */}
           {gapAnalysis.topPriorities?.length > 0 && (
-            <div className="rounded-2xl p-5 gradient-brand" style={{ boxShadow: "0 0 30px rgba(201,168,76,0.15)" }}>
+            <div className="rounded-2xl p-5 gradient-brand" style={{ boxShadow: "0 0 30px rgba(255, 255, 255,0.15)" }}>
               <div className="flex items-center gap-2 mb-3">
                 <Target className="w-4 h-4" style={{ color: "rgba(8,8,8,0.6)" }} />
                 <span className="font-semibold text-sm" style={{ color: "#080808" }}>Your Top Priorities Right Now</span>

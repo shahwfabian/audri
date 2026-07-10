@@ -10,92 +10,92 @@ import { friendlyError } from "@/lib/errors";
 
 /**
  * The flagship endpoint. Two entry modes:
- *  - pastedText: the student pasted the whole scholarship page
- *  - url: the student pasted just the link — we fetch the page, research the
- *    funding organization's website and background, and align the essay to
- *    their mission (the single biggest winning lever).
+ * - pastedText: the student pasted the whole scholarship page
+ * - url: the student pasted just the link, we fetch the page, research the
+ * funding organization's website and background, and align the essay to
+ * their mission (the single biggest winning lever).
  * Either way: parse → funder intelligence → strategy → show-don't-tell essay.
  */
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json().catch(() => ({}));
-    const { pastedText, url, profile, stories, extraNotes, toneId, promptOverride, wordLimitOverride } = body;
-    const apiKey = req.headers.get("x-audri-api-key") ?? undefined;
+ try {
+ const body = await req.json().catch(() => ({}));
+ const { pastedText, url, profile, stories, extraNotes, toneId, promptOverride, wordLimitOverride } = body;
+ const apiKey = req.headers.get("x-audri-api-key") ?? undefined;
 
-    if (!profile) {
-      return NextResponse.json({ error: "Build your profile first so the essay is about YOU." }, { status: 400 });
-    }
+ if (!profile) {
+ return NextResponse.json({ error: "Build your profile first so the essay is about YOU." }, { status: 400 });
+ }
 
-    // ── Paywall gate (server-enforced, token-authenticated) ─────────────────
-    // Identity comes from the signed session so quota is strictly per-account.
-    const session = verifySession(bearerFrom(req.headers.get("authorization")));
-    const userEmail: string | undefined = session?.email ?? profile?.email;
-    if (!userEmail) {
-      return NextResponse.json({ error: "Sign in to generate essays." }, { status: 401 });
-    }
-    const quota = checkEssayQuota(userEmail);
-    if (!quota.allowed) {
-      return NextResponse.json(
-        {
-          error: `You've used all ${FREE_ESSAY_LIMIT} free essays. Upgrade to Audri Pro for unlimited essays.`,
-          paywall: true,
-          plan: quota.plan,
-          remaining: 0,
-        },
-        { status: 402 }
-      );
-    }
+ // ── Paywall gate (server-enforced, token-authenticated) ─────────────────
+ // Identity comes from the signed session so quota is strictly per-account.
+ const session = verifySession(bearerFrom(req.headers.get("authorization")));
+ const userEmail: string | undefined = session?.email ?? profile?.email;
+ if (!userEmail) {
+ return NextResponse.json({ error: "Sign in to generate essays." }, { status: 401 });
+ }
+ const quota = checkEssayQuota(userEmail);
+ if (!quota.allowed) {
+ return NextResponse.json(
+ {
+ error: `You've used all ${FREE_ESSAY_LIMIT} free essays. Upgrade to Audri Pro for unlimited essays.`,
+ paywall: true,
+ plan: quota.plan,
+ remaining: 0,
+ },
+ { status: 402 }
+ );
+ }
 
-    // ── Resolve the scholarship text (URL mode or paste mode) ──────────────
-    let scholarshipText: string | undefined = pastedText?.trim();
-    let funderBackground: string | null = null;
-    let sourceUrl: string | undefined = typeof url === "string" && url.trim() ? url.trim() : undefined;
+ // ── Resolve the scholarship text (URL mode or paste mode) ──────────────
+ let scholarshipText: string | undefined = pastedText?.trim();
+ let funderBackground: string | null = null;
+ let sourceUrl: string | undefined = typeof url === "string" && url.trim() ? url.trim() : undefined;
 
-    // If the "pasted text" is actually just a link, treat it as URL mode
-    if (!sourceUrl && scholarshipText && isLikelyUrl(scholarshipText)) {
-      sourceUrl = scholarshipText;
-      scholarshipText = undefined;
-    }
+ // If the "pasted text" is actually just a link, treat it as URL mode
+ if (!sourceUrl && scholarshipText && isLikelyUrl(scholarshipText)) {
+ sourceUrl = scholarshipText;
+ scholarshipText = undefined;
+ }
 
-    if (sourceUrl) {
-      const [pageText, background] = await Promise.all([
-        fetchScholarshipPage(sourceUrl),
-        fetchFunderBackground(sourceUrl),
-      ]);
+ if (sourceUrl) {
+ const [pageText, background] = await Promise.all([
+ fetchScholarshipPage(sourceUrl),
+ fetchFunderBackground(sourceUrl),
+ ]);
 
-      if (!pageText && !scholarshipText) {
-        return NextResponse.json(
-          { error: "Couldn't read that link — the site may block automated access. Open the page, press Ctrl+A then Ctrl+C, and paste the whole thing here instead." },
-          { status: 422 }
-        );
-      }
-      scholarshipText = scholarshipText ? `${scholarshipText}\n\n${pageText ?? ""}` : (pageText as string);
-      funderBackground = background;
-    }
+ if (!pageText && !scholarshipText) {
+ return NextResponse.json(
+ { error: "Couldn't read that link, the site may block automated access. Open the page, press Ctrl+A then Ctrl+C, and paste the whole thing here instead." },
+ { status: 422 }
+ );
+ }
+ scholarshipText = scholarshipText ? `${scholarshipText}\n\n${pageText ?? ""}` : (pageText as string);
+ funderBackground = background;
+ }
 
-    if (!scholarshipText || scholarshipText.length < 50) {
-      return NextResponse.json(
-        { error: "Paste the full scholarship page or its link — description, eligibility, essay prompt, everything." },
-        { status: 400 }
-      );
-    }
+ if (!scholarshipText || scholarshipText.length < 50) {
+ return NextResponse.json(
+ { error: "Paste the full scholarship page or its link, description, eligibility, essay prompt, everything." },
+ { status: 400 }
+ );
+ }
 
-    // ── Step 1: parse the scholarship ───────────────────────────────────────
-    const scholarship = await parseScholarshipWithAI(scholarshipText, apiKey);
+ // ── Step 1: parse the scholarship ───────────────────────────────────────
+ const scholarship = await parseScholarshipWithAI(scholarshipText, apiKey);
 
-    if (!scholarship.title || scholarship.title === "Unknown" || (scholarship.confidenceScore ?? 0) < 20) {
-      return NextResponse.json(
-        { error: "This doesn't look like a scholarship page. Paste the complete text (or the direct link) from the scholarship's website." },
-        { status: 422 }
-      );
-    }
+ if (!scholarship.title || scholarship.title === "Unknown" || (scholarship.confidenceScore ?? 0) < 20) {
+ return NextResponse.json(
+ { error: "This doesn't look like a scholarship page. Paste the complete text (or the direct link) from the scholarship's website." },
+ { status: 422 }
+ );
+ }
 
-    // ── Step 2: distill funder intelligence for mission alignment ──────────
-    let funderIntelligence: string | undefined;
-    if (funderBackground) {
-      try {
-        funderIntelligence = await callAI(
-          `Below is raw text from a scholarship funder's own website. Distill it into a compact intelligence brief a ghostwriter can use to align a student's essay with this organization — WITHOUT ever quoting or flattering them.
+ // ── Step 2: distill funder intelligence for mission alignment ──────────
+ let funderIntelligence: string | undefined;
+ if (funderBackground) {
+ try {
+ funderIntelligence = await callAI(
+ `Below is raw text from a scholarship funder's own website. Distill it into a compact intelligence brief a ghostwriter can use to align a student's essay with this organization, WITHOUT ever quoting or flattering them.
 
 Cover, in short labeled lines:
 - MISSION: what this organization actually exists to do
@@ -106,65 +106,65 @@ Cover, in short labeled lines:
 
 RAW WEBSITE TEXT:
 ${funderBackground}`,
-          "You are a research analyst distilling an organization's public website into a brief for essay mission-alignment. Be concrete and skeptical — extract what they demonstrably value, not marketing fluff.",
-          { maxTokens: 700, apiKey }
-        );
-      } catch {
-        funderIntelligence = undefined; // research is a bonus — never block the essay on it
-      }
-    }
+ "You are a research analyst distilling an organization's public website into a brief for essay mission-alignment. Be concrete and skeptical, extract what they demonstrably value, not marketing fluff.",
+ { maxTokens: 700, apiKey }
+ );
+ } catch {
+ funderIntelligence = undefined; // research is a bonus, never block the essay on it
+ }
+ }
 
-    // ── Step 3: pick the essay prompt ───────────────────────────────────────
-    const prompts: { prompt: string; wordLimit: number | null }[] = Array.isArray(scholarship.essayPrompts)
-      ? scholarship.essayPrompts
-          .filter((p: { prompt?: string }) => p?.prompt?.trim())
-          .map((p: { prompt: string; wordLimit?: number | null }) => ({
-            prompt: p.prompt,
-            wordLimit: p.wordLimit ?? null,
-          }))
-      : [];
+ // ── Step 3: pick the essay prompt ───────────────────────────────────────
+ const prompts: { prompt: string; wordLimit: number | null }[] = Array.isArray(scholarship.essayPrompts)
+ ? scholarship.essayPrompts
+ .filter((p: { prompt?: string }) => p?.prompt?.trim())
+ .map((p: { prompt: string; wordLimit?: number | null }) => ({
+ prompt: p.prompt,
+ wordLimit: p.wordLimit ?? null,
+ }))
+ : [];
 
-    const essayPrompt: string =
-      promptOverride?.trim() ||
-      prompts[0]?.prompt ||
-      `Write a personal statement for the ${scholarship.title} explaining why you are an outstanding candidate, grounded in your real experiences.`;
+ const essayPrompt: string =
+ promptOverride?.trim() ||
+ prompts[0]?.prompt ||
+ `Write a personal statement for the ${scholarship.title} explaining why you are an outstanding candidate, grounded in your real experiences.`;
 
-    const wordLimit: number | undefined = wordLimitOverride ?? prompts[0]?.wordLimit ?? undefined;
+ const wordLimit: number | undefined = wordLimitOverride ?? prompts[0]?.wordLimit ?? undefined;
 
-    // ── Step 4: strategy → Step 5: draft ────────────────────────────────────
-    const input = {
-      profile,
-      prompt: essayPrompt,
-      wordLimit,
-      allStories: Array.isArray(stories) ? stories : [],
-      scholarshipName: scholarship.title,
-      scholarshipMission: scholarship.description ?? undefined,
-      funderIntelligence,
-      extraNotes: extraNotes?.trim() || undefined,
-      toneDirective: getToneDirective(toneId),
-      apiKey,
-    };
+ // ── Step 4: strategy → Step 5: draft ────────────────────────────────────
+ const input = {
+ profile,
+ prompt: essayPrompt,
+ wordLimit,
+ allStories: Array.isArray(stories) ? stories : [],
+ scholarshipName: scholarship.title,
+ scholarshipMission: scholarship.description ?? undefined,
+ funderIntelligence,
+ extraNotes: extraNotes?.trim() || undefined,
+ toneDirective: getToneDirective(toneId),
+ apiKey,
+ };
 
-    const strategy = await generateEssayStrategy(input);
-    const essay = await generateEssayDraft(input, strategy);
+ const strategy = await generateEssayStrategy(input);
+ const essay = await generateEssayDraft(input, strategy);
 
-    // Count this essay against the free quota (pro = unlimited)
-    const updatedUser = recordEssay(userEmail);
+ // Count this essay against the free quota (pro = unlimited)
+ const updatedUser = recordEssay(userEmail);
 
-    return NextResponse.json({
-      scholarship,
-      essayPrompt,
-      wordLimit: wordLimit ?? null,
-      allPrompts: prompts,
-      strategy,
-      essay,
-      funderResearched: !!funderIntelligence,
-      sourceUrl: sourceUrl ?? null,
-      quota: updatedUser
-        ? { plan: updatedUser.plan, remaining: updatedUser.essaysRemaining }
-        : { plan: quota.plan, remaining: quota.remaining },
-    });
-  } catch (err) {
-    return NextResponse.json({ error: friendlyError(err) }, { status: 500 });
-  }
+ return NextResponse.json({
+ scholarship,
+ essayPrompt,
+ wordLimit: wordLimit ?? null,
+ allPrompts: prompts,
+ strategy,
+ essay,
+ funderResearched: !!funderIntelligence,
+ sourceUrl: sourceUrl ?? null,
+ quota: updatedUser
+ ? { plan: updatedUser.plan, remaining: updatedUser.essaysRemaining }
+ : { plan: quota.plan, remaining: quota.remaining },
+ });
+ } catch (err) {
+ return NextResponse.json({ error: friendlyError(err) }, { status: 500 });
+ }
 }
