@@ -21,6 +21,7 @@ import {
   Key,
   Mail,
   BookMarked,
+  Quote,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { AudriLogo } from "@/components/AudriLogo";
@@ -34,6 +35,7 @@ const navItems = [
   { href: "/profile",            icon: User,            label: "My Profile" },
   { href: "/scholarships/search",icon: Search,          label: "Find Scholarships" },
   { href: "/scholarships/paste", icon: BarChart3,       label: "Paste & Analyze" },
+  { href: "/story-studio",       icon: Quote,           label: "Story Studio" },
   { href: "/stories",            icon: BookOpen,        label: "Story Vault" },
   { href: "/essays",             icon: FileText,        label: "Essays" },
   { href: "/recommendations",    icon: Mail,            label: "Rec Letters" },

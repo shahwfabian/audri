@@ -60,7 +60,7 @@ const LOADING_STAGES_URL = [
 ];
 
 export default function GeneratePage() {
-  const { profile, apiKey, user, addEssayDraft, addScholarship } = useAppStore();
+  const { profile, apiKey, user, pendingStoryAngle, setPendingStoryAngle, addEssayDraft, addScholarship } = useAppStore();
 
   const [pastedText, setPastedText] = useState("");
   const [scholarshipUrl, setScholarshipUrl] = useState("");
@@ -81,6 +81,20 @@ export default function GeneratePage() {
       if (!localStorage.getItem("audri:manual-seen")) setShowManualNudge(true);
     } catch {}
   }, []);
+
+  // A story angle chosen in Story Studio prefills the notes here.
+  useEffect(() => {
+    if (pendingStoryAngle) {
+      // Idempotent: guard against React Strict-Mode double-invoke duplicating it.
+      setExtraNotes((prev) =>
+        prev.includes(pendingStoryAngle) ? prev : prev ? `${prev}\n\n${pendingStoryAngle}` : pendingStoryAngle
+      );
+      setShowNotes(true);
+      setPendingStoryAngle(null);
+      toast.success("Story angle added — paste a scholarship to build on it.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingStoryAngle]);
 
   function dismissManualNudge() {
     setShowManualNudge(false);

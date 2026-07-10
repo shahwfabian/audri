@@ -60,6 +60,10 @@ interface AppState {
   logApplicationFinished: () => void;
   streak: { count: number; lastActiveDate: string };
 
+  // Story Studio → Generator handoff (a chosen story angle to prefill)
+  pendingStoryAngle: string | null;
+  setPendingStoryAngle: (note: string | null) => void;
+
   // UI state
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
@@ -242,6 +246,9 @@ export const useAppStore = create<AppState>()(
 
         set({ dailyGoal: updatedGoal, streak: updatedStreak });
       },
+
+      pendingStoryAngle: null,
+      setPendingStoryAngle: (note) => set({ pendingStoryAngle: note }),
 
       sidebarOpen: true,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
