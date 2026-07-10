@@ -21,6 +21,7 @@ import {
   Flame,
   ChevronUp,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import type { ApplicationStatus } from "@/lib/types";
 
@@ -368,7 +369,7 @@ export default function DashboardPage() {
                 { href: "/scholarships/search", icon: Search, label: "Find Scholarships", iconColor: "var(--gold)", iconBg: "rgba(201,168,76,0.12)" },
                 { href: "/scholarships/paste", icon: FileText, label: "Paste & Analyze", iconColor: "#C084FC", iconBg: "rgba(168,85,247,0.12)" },
                 { href: "/stories", icon: BookOpen, label: "Story Vault", iconColor: "var(--green)", iconBg: "rgba(32,200,120,0.12)" },
-                { href: "/essays", icon: FileText, label: "Write an Essay", iconColor: "#67E8F9", iconBg: "rgba(34,211,238,0.12)" },
+                { href: "/generate", icon: Sparkles, label: "Write an Essay", iconColor: "var(--gold)", iconBg: "rgba(201,168,76,0.12)" },
                 { href: "/gap-analysis", icon: Zap, label: "Run Gap Analysis", iconColor: "#F59E0B", iconBg: "rgba(245,158,11,0.12)" },
               ].map((action) => (
                 <Link

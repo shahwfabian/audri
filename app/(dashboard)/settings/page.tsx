@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
 import {
@@ -27,6 +27,16 @@ export default function SettingsPage() {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<"ok" | "billing" | "invalid" | "fail" | null>(null);
   const [testDetail, setTestDetail] = useState<string | null>(null);
+  const [serverHasKey, setServerHasKey] = useState<boolean | null>(null);
+
+  // Detect whether AI is already active server-side (hosted key) so we never
+  // tell a student "AI is off" when it actually works out of the box.
+  useEffect(() => {
+    fetch("/api/ai/has-key")
+      .then((r) => r.json())
+      .then((d) => setServerHasKey(!!d.hasKey))
+      .catch(() => setServerHasKey(false));
+  }, []);
 
   async function handleTestAndSave() {
     if (!anthropicKey.trim()) { toast.error("Enter your Anthropic API key first."); return; }
@@ -74,7 +84,8 @@ export default function SettingsPage() {
     toast.success("Settings saved.");
   }
 
-  const hasKey = !!apiKey;
+  const hasPersonalKey = !!apiKey;
+  const aiActive = hasPersonalKey || serverHasKey === true;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -84,7 +95,14 @@ export default function SettingsPage() {
       </div>
 
       {/* Status banner */}
-      {!hasKey && (
+      {aiActive ? (
+        <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: "rgba(32,200,120,0.08)", border: "1px solid rgba(32,200,120,0.25)" }}>
+          <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: "var(--green)" }} />
+          <p className="text-sm font-medium" style={{ color: "var(--green)" }}>
+            AI features are active{!hasPersonalKey && serverHasKey ? " — powered by Audri. You don't need your own key." : "."}
+          </p>
+        </div>
+      ) : serverHasKey === null ? null : (
         <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)" }}>
           <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "#F59E0B" }} />
           <div>
@@ -96,13 +114,6 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {hasKey && (
-        <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: "rgba(32,200,120,0.08)", border: "1px solid rgba(32,200,120,0.25)" }}>
-          <CheckCircle2 className="w-5 h-5" style={{ color: "var(--green)" }} />
-          <p className="text-sm font-medium" style={{ color: "var(--green)" }}>AI features are active.</p>
-        </div>
-      )}
-
       {/* Anthropic API Key */}
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "1rem", padding: "1.5rem" }}>
         <div className="flex items-center gap-3 mb-4">
@@ -110,8 +121,17 @@ export default function SettingsPage() {
             <Key className="w-4 h-4" style={{ color: "var(--gold)" }} />
           </div>
           <div>
-            <h2 className="font-semibold text-sm" style={{ color: "var(--text)" }}>Anthropic API Key</h2>
-            <p className="text-xs" style={{ color: "var(--text-3)" }}>Powers all AI features in Audri</p>
+            <h2 className="font-semibold text-sm" style={{ color: "var(--text)" }}>
+              Anthropic API Key{" "}
+              {serverHasKey && !hasPersonalKey && (
+                <span className="text-xs font-normal" style={{ color: "var(--text-3)" }}>(optional — bring your own)</span>
+              )}
+            </h2>
+            <p className="text-xs" style={{ color: "var(--text-3)" }}>
+              {serverHasKey && !hasPersonalKey
+                ? "AI already works on your account. Add a personal key only if you'd rather use your own."
+                : "Powers all AI features in Audri"}
+            </p>
           </div>
         </div>
 
