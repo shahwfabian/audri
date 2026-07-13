@@ -8,10 +8,10 @@ import { friendlyError } from "@/lib/errors";
 export async function GET(req: Request) {
   // Protect with CRON_SECRET
   const authHeader = req.headers.get("authorization");
-  if (
-    process.env.CRON_SECRET &&
-    authHeader !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  if (!process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Cron ingestion is not configured." }, { status: 503 });
+  }
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

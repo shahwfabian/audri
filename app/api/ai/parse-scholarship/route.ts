@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseScholarshipWithAI } from "@/lib/scholarships/parseScholarshipWithAI";
 import { friendlyError } from "@/lib/errors";
+import { guardAIRequest, readJsonBody, requestGuardResponse } from "@/lib/auth/guards";
 
 export async function POST(req: NextRequest) {
  try {
- const body = await req.json().catch(() => ({}));
+ const auth = guardAIRequest(req, "parse-scholarship");
+ if (!auth.ok) return auth.response;
+ const body = await readJsonBody<{ text?: string }>(req, 300_000);
  const { text } = body;
  const apiKey = req.headers.get("x-audri-api-key") ?? undefined;
 
@@ -26,6 +29,8 @@ export async function POST(req: NextRequest) {
 
  return NextResponse.json(result);
  } catch (err) {
+ const guarded = requestGuardResponse(err);
+ if (guarded) return guarded;
  return NextResponse.json({ error: friendlyError(err) }, { status: 500 });
  }
 }

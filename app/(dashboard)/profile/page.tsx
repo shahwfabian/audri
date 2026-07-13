@@ -85,7 +85,7 @@ function FieldValue({ children }: { children: React.ReactNode }) {
 }
 
 export default function ProfilePage() {
- const { profile, updateProfile } = useAppStore();
+ const { profile, user, updateProfile } = useAppStore();
  const [uploading, setUploading] = useState(false);
  const [resumeText, setResumeText] = useState("");
  const [showResumeInput, setShowResumeInput] = useState(false);
@@ -150,7 +150,7 @@ export default function ProfilePage() {
  try {
  const res = await fetch("/api/ai/parse-resume", {
  method: "POST",
- headers: { "Content-Type": "application/json" },
+ headers: { "Content-Type": "application/json", ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}) },
  body: JSON.stringify({ text: resumeText }),
  });
  if (!res.ok) throw new Error();

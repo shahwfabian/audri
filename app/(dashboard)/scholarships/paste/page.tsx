@@ -14,7 +14,7 @@ import type { Scholarship, SavedScholarship, ParsedScholarship } from "@/lib/typ
 import Link from "next/link";
 
 export default function PasteScholarshipPage() {
- const { profile, apiKey, addScholarship } = useAppStore();
+ const { profile, apiKey, user, addScholarship } = useAppStore();
 
  const [rawText, setRawText] = useState("");
  const [parsing, setParsing] = useState(false);
@@ -28,6 +28,7 @@ export default function PasteScholarshipPage() {
  const authHeaders: Record<string, string> = {
  "Content-Type": "application/json",
  ...(apiKey ? { "x-audri-api-key": apiKey } : {}),
+ ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
  };
 
  async function handleParse() {

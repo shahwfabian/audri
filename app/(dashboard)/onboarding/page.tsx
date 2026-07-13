@@ -67,7 +67,7 @@ export default function OnboardingPage() {
  if (resumeText.trim()) {
  const res = await fetch("/api/ai/parse-resume", {
  method: "POST",
- headers: { "Content-Type": "application/json" },
+ headers: { "Content-Type": "application/json", ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}) },
  body: JSON.stringify({ text: resumeText }),
  });
  if (res.ok) {

@@ -4,9 +4,22 @@ import { fetchScholarshipPage, fetchFunderBackground, isLikelyUrl } from "@/lib/
 import { generateEssayStrategy, generateEssayDraft } from "@/lib/ai/functions/generateEssay";
 import { callAI } from "@/lib/ai/client";
 import { getToneDirective } from "@/lib/ai/tones";
-import { checkEssayQuota, recordEssay, FREE_ESSAY_LIMIT } from "@/lib/auth/users";
-import { verifySession, bearerFrom } from "@/lib/auth/crypto";
+import { checkEssayQuota, reserveEssay, releaseEssayReservation, FREE_ESSAY_LIMIT } from "@/lib/auth/users";
+import { guardAIRequest, readJsonBody, requestGuardResponse } from "@/lib/auth/guards";
+import { UnsafeUrlError } from "@/lib/scrapers/publicUrl";
 import { friendlyError } from "@/lib/errors";
+
+type AutoEssayInput = Parameters<typeof generateEssayStrategy>[0];
+interface AutoEssayBody {
+ pastedText?: string;
+ url?: string;
+ profile?: AutoEssayInput["profile"];
+ stories?: AutoEssayInput["allStories"];
+ extraNotes?: string;
+ toneId?: string;
+ promptOverride?: string;
+ wordLimitOverride?: number | null;
+}
 
 /**
  * The flagship endpoint. Two entry modes:
@@ -17,8 +30,11 @@ import { friendlyError } from "@/lib/errors";
  * Either way: parse → funder intelligence → strategy → show-don't-tell essay.
  */
 export async function POST(req: NextRequest) {
+ let reservedFor: string | null = null;
  try {
- const body = await req.json().catch(() => ({}));
+ const auth = guardAIRequest(req, "auto-essay", 8);
+ if (!auth.ok) return auth.response;
+ const body = await readJsonBody<AutoEssayBody>(req, 600_000);
  const { pastedText, url, profile, stories, extraNotes, toneId, promptOverride, wordLimitOverride } = body;
  const apiKey = req.headers.get("x-audri-api-key") ?? undefined;
 
@@ -28,11 +44,7 @@ export async function POST(req: NextRequest) {
 
  // ── Paywall gate (server-enforced, token-authenticated) ─────────────────
  // Identity comes from the signed session so quota is strictly per-account.
- const session = verifySession(bearerFrom(req.headers.get("authorization")));
- const userEmail: string | undefined = session?.email ?? profile?.email;
- if (!userEmail) {
- return NextResponse.json({ error: "Sign in to generate essays." }, { status: 401 });
- }
+ const userEmail = auth.session.email;
  const quota = checkEssayQuota(userEmail);
  if (!quota.allowed) {
  return NextResponse.json(
@@ -80,10 +92,21 @@ export async function POST(req: NextRequest) {
  );
  }
 
+ const reservation = reserveEssay(userEmail);
+ if (!reservation.allowed) {
+ return NextResponse.json(
+ { error: `You've used all ${FREE_ESSAY_LIMIT} free essays. Upgrade to Audri Pro for unlimited essays.`, paywall: true, remaining: 0 },
+ { status: 402 }
+ );
+ }
+ reservedFor = userEmail;
+
  // ── Step 1: parse the scholarship ───────────────────────────────────────
  const scholarship = await parseScholarshipWithAI(scholarshipText, apiKey);
 
  if (!scholarship.title || scholarship.title === "Unknown" || (scholarship.confidenceScore ?? 0) < 20) {
+ releaseEssayReservation(userEmail);
+ reservedFor = null;
  return NextResponse.json(
  { error: "This doesn't look like a scholarship page. Paste the complete text (or the direct link) from the scholarship's website." },
  { status: 422 }
@@ -147,9 +170,7 @@ ${funderBackground}`,
 
  const strategy = await generateEssayStrategy(input);
  const essay = await generateEssayDraft(input, strategy);
-
- // Count this essay against the free quota (pro = unlimited)
- const updatedUser = recordEssay(userEmail);
+ reservedFor = null;
 
  return NextResponse.json({
  scholarship,
@@ -160,11 +181,17 @@ ${funderBackground}`,
  essay,
  funderResearched: !!funderIntelligence,
  sourceUrl: sourceUrl ?? null,
- quota: updatedUser
- ? { plan: updatedUser.plan, remaining: updatedUser.essaysRemaining }
+ quota: reservation.user
+ ? { plan: reservation.user.plan, remaining: reservation.user.essaysRemaining }
  : { plan: quota.plan, remaining: quota.remaining },
  });
  } catch (err) {
+ if (reservedFor) releaseEssayReservation(reservedFor);
+ const guarded = requestGuardResponse(err);
+ if (guarded) return guarded;
+ if (err instanceof UnsafeUrlError) {
+ return NextResponse.json({ error: err.message }, { status: 400 });
+ }
  return NextResponse.json({ error: friendlyError(err) }, { status: 500 });
  }
 }

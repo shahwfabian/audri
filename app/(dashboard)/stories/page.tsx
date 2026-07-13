@@ -148,7 +148,7 @@ function StoryCard({ story }: { story: Story }) {
 }
 
 export default function StoryVaultPage() {
- const { profile, updateProfile } = useAppStore();
+ const { profile, user, updateProfile } = useAppStore();
  const [extracting, setExtracting] = useState(false);
 
  const stories = profile?.stories ?? [];
@@ -160,7 +160,7 @@ export default function StoryVaultPage() {
  try {
  const res = await fetch("/api/ai/extract-stories", {
  method: "POST",
- headers: { "Content-Type": "application/json" },
+ headers: { "Content-Type": "application/json", ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}) },
  body: JSON.stringify({ profile }),
  });
  if (!res.ok) throw new Error(await res.text());

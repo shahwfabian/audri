@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { guardAIRequest, readJsonBody, requestGuardResponse } from "@/lib/auth/guards";
 
 export async function POST(req: NextRequest) {
+ const auth = guardAIRequest(req, "test-key", 6);
+ if (!auth.ok) return auth.response;
+ try {
+ await readJsonBody(req, 4_096);
+ } catch (err) {
+ const guarded = requestGuardResponse(err);
+ if (guarded) return guarded;
+ throw err;
+ }
  const apiKey = req.headers.get("x-audri-api-key") ?? process.env.ANTHROPIC_API_KEY;
 
  if (!apiKey || apiKey === "your_anthropic_api_key_here") {

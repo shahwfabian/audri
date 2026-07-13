@@ -16,7 +16,7 @@ const RECOMMENDER_TYPES = [
 ];
 
 export default function RecommendationsPage() {
- const { profile, apiKey } = useAppStore();
+ const { profile, apiKey, user } = useAppStore();
 
  const [recommenderName, setRecommenderName] = useState("");
  const [recommenderRole, setRecommenderRole] = useState("Teacher");
@@ -46,6 +46,7 @@ export default function RecommendationsPage() {
  headers: {
  "Content-Type": "application/json",
  ...(apiKey ? { "x-audri-api-key": apiKey } : {}),
+ ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
  },
  body: JSON.stringify({
  profile,

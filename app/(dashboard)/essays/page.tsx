@@ -61,7 +61,7 @@ function EssayCard({ draft, onEdit }: { draft: EssayDraft; onEdit: (draft: Essay
 }
 
 export default function EssaysPage() {
-  const { profile, savedScholarships, essayDrafts, addEssayDraft, updateEssayDraft } = useAppStore();
+  const { profile, user, savedScholarships, essayDrafts, addEssayDraft, updateEssayDraft } = useAppStore();
 
   const [selectedScholarshipId, setSelectedScholarshipId] = useState("");
   const [customPrompt, setCustomPrompt] = useState("");
@@ -93,7 +93,7 @@ export default function EssaysPage() {
       const scholarshipName = selectedScholarship?.scholarship.name ?? "Scholarship Application";
       const res = await fetch("/api/ai/generate-essay", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}) },
         body: JSON.stringify({ profile, prompt: finalPrompt, wordLimit: finalWordLimit, story: selectedStory, scholarshipName }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -118,7 +118,7 @@ export default function EssaysPage() {
       try {
         const scoreRes = await fetch("/api/ai/critique-essay", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}) },
           body: JSON.stringify({ essay, prompt: finalPrompt, wordLimit: finalWordLimit }),
         });
         if (scoreRes.ok) {
@@ -140,7 +140,7 @@ export default function EssaysPage() {
     try {
       const res = await fetch("/api/ai/generate-essay", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}) },
         body: JSON.stringify({ mode: "revise", essay: editContent, revisionInstructions: revisionNote, wordLimit: activeEssay.wordLimit }),
       });
       if (!res.ok) throw new Error(await res.text());

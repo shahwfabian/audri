@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
- const { apiKey, supabaseUrl, supabaseAnonKey, setApiKey, setSupabaseConfig } = useAppStore();
+ const { apiKey, user, supabaseUrl, supabaseAnonKey, setApiKey, setSupabaseConfig } = useAppStore();
 
  const [anthropicKey, setAnthropicKey] = useState(apiKey ?? "");
  const [sbUrl, setSbUrl] = useState(supabaseUrl ?? "");
@@ -46,7 +46,7 @@ export default function SettingsPage() {
  try {
  const res = await fetch("/api/ai/test-key", {
  method: "POST",
- headers: { "Content-Type": "application/json", "x-audri-api-key": anthropicKey.trim() },
+ headers: { "Content-Type": "application/json", "x-audri-api-key": anthropicKey.trim(), ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}) },
  body: JSON.stringify({}),
  });
  const body = await res.json().catch(() => ({}));

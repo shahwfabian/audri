@@ -7,7 +7,7 @@
  * credibility lever a scholarship essay has.
  */
 
-import { fetchHTML } from "@/lib/scrapers/http";
+import { fetchPublicHTML } from "@/lib/scrapers/http";
 
 /** Strip a raw HTML document down to readable text. */
 export function htmlToText(html: string, maxChars = 18000): string {
@@ -53,7 +53,7 @@ export function normalizeUrl(s: string): string {
 
 /** Fetch the scholarship page itself as readable text. */
 export async function fetchScholarshipPage(url: string): Promise<string | null> {
- const html = await fetchHTML(normalizeUrl(url), 20000);
+ const html = await fetchPublicHTML(normalizeUrl(url), 20000);
  if (!html) return null;
  const text = htmlToText(html);
  return text.length >= 100 ? text : null;
@@ -74,7 +74,7 @@ export async function fetchFunderBackground(url: string): Promise<string | null>
 
  const chunks: string[] = [];
 
- const homeHtml = await fetchHTML(origin, 15000);
+ const homeHtml = await fetchPublicHTML(origin, 15000);
  if (homeHtml) {
  const home = htmlToText(homeHtml, 6000);
  if (home.length > 200) chunks.push(`[ORGANIZATION HOMEPAGE]\n${home}`);
@@ -82,7 +82,7 @@ export async function fetchFunderBackground(url: string): Promise<string | null>
 
  const aboutPaths = ["/about", "/about-us", "/mission", "/our-mission", "/who-we-are"];
  for (const p of aboutPaths) {
- const html = await fetchHTML(origin + p, 12000);
+ const html = await fetchPublicHTML(origin + p, 12000);
  if (html) {
  const text = htmlToText(html, 6000);
  // skip soft-404s that render the homepage or an error shell

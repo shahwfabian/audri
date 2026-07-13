@@ -12,6 +12,13 @@ import { runScraper, type ScrapeSource } from "@/lib/scrapers/index";
  */
 export async function POST(req: NextRequest) {
  try {
+ const secret = process.env.CRON_SECRET;
+ if (!secret) {
+ return NextResponse.json({ error: "Scraping is not configured." }, { status: 503 });
+ }
+ if (req.headers.get("authorization") !== `Bearer ${secret}`) {
+ return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ }
  const body = await req.json().catch(() => ({}));
  const source: ScrapeSource = body.source ?? "all";
 

@@ -335,14 +335,14 @@ export default function ScholarshipSearchPage() {
  useEffect(() => { fetchScholarships(true); }, []); // eslint-disable-line
  useEffect(() => { fetchScholarships(true); }, [activeCategory]); // eslint-disable-line
 
- async function triggerScrape() {
+ async function refreshCatalog() {
  setScraping(true);
- toast.info("Scraping started, this takes 2 to 5 minutes.");
  try {
- await fetch("/api/scholarships/scrape", { method: "POST", body: JSON.stringify({ source: "all" }) });
- setTimeout(() => { fetchScholarships(true); setScraping(false); }, 10000);
+ await fetchScholarships(true);
+ toast.success("Scholarship catalog refreshed.");
  } catch {
- toast.error("Scrape failed.");
+ toast.error("Refresh failed.");
+ } finally {
  setScraping(false);
  }
  }
@@ -400,9 +400,9 @@ export default function ScholarshipSearchPage() {
  <SlidersHorizontal className="w-4 h-4" />
  Filters
  </button>
- <button onClick={triggerScrape} disabled={scraping} title="Scrape fresh data" className="btn-ghost flex items-center gap-1.5 text-sm px-3 py-2">
+ <button onClick={refreshCatalog} disabled={scraping} title="Refresh scholarship catalog" className="btn-ghost flex items-center gap-1.5 text-sm px-3 py-2">
  {scraping ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
- {scraping ? "Scraping…" : "Refresh Data"}
+ {scraping ? "Refreshing…" : "Refresh Data"}
  </button>
  </div>
  </div>
@@ -529,7 +529,7 @@ export default function ScholarshipSearchPage() {
  <p className="font-semibold" style={{ color: "var(--text)" }}>No scholarships found</p>
  <p className="text-sm mt-1" style={{ color: "var(--text-2)" }}>
  Try a different search or{" "}
- <button onClick={triggerScrape} className="underline" style={{ color: "var(--gold)" }}>refresh data</button>.
+ <button onClick={refreshCatalog} className="underline" style={{ color: "var(--gold)" }}>refresh data</button>.
  </p>
  </div>
  ) : (

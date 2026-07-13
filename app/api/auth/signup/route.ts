@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createUser } from "@/lib/auth/users";
+import { clientAddress, enforceRateLimit, readJsonBody, requestGuardResponse } from "@/lib/auth/guards";
 
 /** Instant account creation, any email provider, no verification code. */
 export async function POST(req: NextRequest) {
- const body = await req.json().catch(() => ({}));
+ try {
+ const limited = enforceRateLimit(`signup:${clientAddress(req)}`, 5, 60 * 60_000);
+ if (limited) return limited;
+ const body = await readJsonBody<{ email?: string; name?: string; password?: string }>(req, 16_384);
  const { email, name, password } = body;
 
  if (!email || !name || !password) {
@@ -16,4 +20,9 @@ export async function POST(req: NextRequest) {
  }
 
  return NextResponse.json({ user });
+ } catch (err) {
+ const guarded = requestGuardResponse(err);
+ if (guarded) return guarded;
+ return NextResponse.json({ error: "Could not create account." }, { status: 500 });
+ }
 }

@@ -13,7 +13,10 @@ import * as path from "path";
 import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
 import { encryptJSON, decryptJSON, issueSession } from "./crypto";
 
-const USERS_PATH = path.join(process.cwd(), "data", "users.json");
+const USERS_FILE = process.env.AUDRI_USERS_FILE
+ ? path.basename(process.env.AUDRI_USERS_FILE)
+ : "users.json";
+const USERS_PATH = path.join(process.cwd(), "data", USERS_FILE);
 
 /** Free-tier essay allowance. Override with AUDRI_FREE_ESSAYS in .env.local. */
 export const FREE_ESSAY_LIMIT = Math.max(1, parseInt(process.env.AUDRI_FREE_ESSAYS ?? "3", 10) || 3);
@@ -127,41 +130,39 @@ export function authenticate(email: string, password: string): { user?: PublicUs
 
 /**
  * Paywall gate. Returns whether this user may generate another essay.
- * Unknown users (legacy demo sessions) get created implicitly as free users
- * so the quota still applies to them.
+ * Unknown users are denied. Quota identity must come from a signed session
+ * whose account exists in this store.
  */
 export function checkEssayQuota(email: string): { allowed: boolean; remaining: number | null; plan: "free" | "pro" } {
  const u = findUser(email);
  if (!u) {
- // Legacy/demo session with no server account, allow within the free
- // limit by creating a shadow record keyed to the email.
- const users = readUsers();
- const shadow: StoredUser = {
- id: `user_${Date.now()}_${randomBytes(4).toString("hex")}`,
- email: normalize(email),
- name: email.split("@")[0],
- passwordHash: hashPassword(randomBytes(12).toString("hex")),
- plan: "free",
- essaysGenerated: 0,
- createdAt: new Date().toISOString(),
- };
- users.push(shadow);
- writeUsers(users);
- return { allowed: true, remaining: FREE_ESSAY_LIMIT, plan: "free" };
+ return { allowed: false, remaining: 0, plan: "free" };
  }
  if (u.plan === "pro") return { allowed: true, remaining: null, plan: "pro" };
  const remaining = FREE_ESSAY_LIMIT - u.essaysGenerated;
  return { allowed: remaining > 0, remaining: Math.max(0, remaining), plan: "free" };
 }
 
-/** Record a successful essay generation against the user's quota. */
-export function recordEssay(email: string): PublicUser | null {
+/** Reserve one generation before paid work starts. Single-step within this process. */
+export function reserveEssay(email: string): { allowed: boolean; user: PublicUser | null } {
  const users = readUsers();
  const u = users.find((x) => x.email === normalize(email));
- if (!u) return null;
+ if (!u) return { allowed: false, user: null };
+ if (u.plan !== "pro" && u.essaysGenerated >= FREE_ESSAY_LIMIT) {
+ return { allowed: false, user: toPublic(u) };
+ }
  u.essaysGenerated += 1;
  writeUsers(users);
- return toPublic(u);
+ return { allowed: true, user: toPublic(u) };
+}
+
+/** Roll back a reserved generation when provider work fails. */
+export function releaseEssayReservation(email: string): void {
+ const users = readUsers();
+ const u = users.find((x) => x.email === normalize(email));
+ if (!u || u.essaysGenerated <= 0) return;
+ u.essaysGenerated -= 1;
+ writeUsers(users);
 }
 
 /** Persist the student's profile on their account, ENCRYPTED at rest. Survives devices and sessions. */

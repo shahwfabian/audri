@@ -3,10 +3,34 @@ import { callAI } from "@/lib/ai/client";
 import { SYSTEM_PROMPTS } from "@/lib/ai/prompts/system";
 import { enforceHouseStyle } from "@/lib/ai/style";
 import { friendlyError } from "@/lib/errors";
+import { guardAIRequest, readJsonBody, requestGuardResponse } from "@/lib/auth/guards";
+
+interface RecommendationBody {
+ profile?: {
+ fullName?: string;
+ educationLevel?: string;
+ schoolName?: string;
+ gpa?: number;
+ major?: string;
+ intendedMajor?: string;
+ longTermGoals?: string;
+ achievements?: Array<{ title: string; description?: string; impact?: string }>;
+ };
+ recommenderName?: string;
+ recommenderRole?: string;
+ relationship?: string;
+ duration?: string;
+ strengths?: string;
+ anecdotes?: string;
+ scholarshipName?: string;
+ scholarshipFocus?: string;
+}
 
 export async function POST(req: NextRequest) {
  try {
- const body = await req.json().catch(() => ({}));
+ const auth = guardAIRequest(req, "recommendation");
+ if (!auth.ok) return auth.response;
+ const body = await readJsonBody<RecommendationBody>(req, 400_000);
  const {
  profile,
  recommenderName,
@@ -56,6 +80,8 @@ Write the complete letter now. Standard business letter body (no date/address bl
 
  return NextResponse.json({ letter: enforceHouseStyle(letter) });
  } catch (err) {
+ const guarded = requestGuardResponse(err);
+ if (guarded) return guarded;
  return NextResponse.json({ error: friendlyError(err) }, { status: 500 });
  }
 }

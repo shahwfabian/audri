@@ -5,6 +5,7 @@
  */
 
 import axios from "axios";
+import { assertPublicHttpUrl, UnsafeUrlError } from "./publicUrl";
 
 const USER_AGENTS = [
  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -47,6 +48,50 @@ export async function fetchHTML(url: string, timeoutMs = 15000): Promise<string 
  console.warn(` [fetch] ${url} → ${msg}`);
  return null;
  }
+}
+
+/** Fetch untrusted user-provided URLs while blocking internal networks and oversized bodies. */
+export async function fetchPublicHTML(
+ url: string,
+ timeoutMs = 15000,
+ maxBytes = 2_000_000
+): Promise<string | null> {
+ let current = url;
+
+ for (let redirect = 0; redirect <= 5; redirect += 1) {
+ const safeUrl = await assertPublicHttpUrl(current);
+ try {
+ const response = await axios.get<string>(safeUrl.toString(), {
+ headers: {
+ "User-Agent": nextUA(),
+ Accept: "text/html,application/xhtml+xml",
+ "Accept-Language": "en-US,en;q=0.5",
+ },
+ timeout: timeoutMs,
+ responseType: "text",
+ maxRedirects: 0,
+ maxContentLength: maxBytes,
+ maxBodyLength: maxBytes,
+ validateStatus: (status) => status >= 200 && status < 400,
+ });
+
+ if (response.status >= 300) {
+ const location = response.headers.location;
+ if (!location || redirect === 5) return null;
+ current = new URL(location, safeUrl).toString();
+ continue;
+ }
+
+ return typeof response.data === "string" ? response.data : String(response.data);
+ } catch (err) {
+ if (err instanceof UnsafeUrlError) throw err;
+ const msg = err instanceof Error ? err.message : String(err);
+ console.warn(` [public fetch] ${safeUrl.origin} -> ${msg}`);
+ return null;
+ }
+ }
+
+ return null;
 }
 
 /** Clean whitespace from a scraped string. */

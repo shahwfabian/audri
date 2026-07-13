@@ -42,6 +42,7 @@ next-env.d.ts
 
 # Encrypted user store + generated secret (never commit)
 /data/users.json
+/data/users.test.*.json
 /data/.secret
 
 # ...but do commit the template

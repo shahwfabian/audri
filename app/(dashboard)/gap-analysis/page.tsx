@@ -87,7 +87,7 @@ function GapCard({ gap }: { gap: ProfileGap }) {
 }
 
 export default function GapAnalysisPage() {
-  const { profile, gapAnalysis, setGapAnalysis } = useAppStore();
+  const { profile, user, gapAnalysis, setGapAnalysis } = useAppStore();
   const [running, setRunning] = useState(false);
 
   async function handleRunAnalysis() {
@@ -96,7 +96,7 @@ export default function GapAnalysisPage() {
     try {
       const res = await fetch("/api/ai/gap-analysis", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}) },
         body: JSON.stringify({ profile }),
       });
       if (!res.ok) throw new Error(await res.text());

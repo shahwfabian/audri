@@ -3,10 +3,13 @@ import { NextResponse } from "next/server";
 import { parseScholarshipWithAI } from "@/lib/scholarships/parseScholarshipWithAI";
 import { upsertScholarship } from "@/lib/scholarships/upsertScholarship";
 import { friendlyError } from "@/lib/errors";
+import { guardAIRequest, readJsonBody, requestGuardResponse } from "@/lib/auth/guards";
 
 export async function POST(req: Request) {
  try {
- const body = await req.json().catch(() => ({}));
+ const auth = guardAIRequest(req, "scholarship-upsert", 10);
+ if (!auth.ok) return auth.response;
+ const body = await readJsonBody<{ rawText?: string }>(req, 300_000);
  const { rawText } = body;
 
  // Client can pass their API key as a header (from Settings page)
@@ -35,6 +38,8 @@ export async function POST(req: Request) {
 
  return NextResponse.json({ success: true, scholarship: savedScholarship });
  } catch (err) {
+ const guarded = requestGuardResponse(err);
+ if (guarded) return guarded;
  // friendlyError converts ALL internal errors to safe user messages
  const message = friendlyError(err);
  return NextResponse.json({ error: message }, { status: 500 });
