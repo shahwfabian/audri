@@ -16,7 +16,7 @@ const RECOMMENDER_TYPES = [
 ];
 
 export default function RecommendationsPage() {
- const { profile, apiKey, user } = useAppStore();
+ const { profile, user } = useAppStore();
 
  const [recommenderName, setRecommenderName] = useState("");
  const [recommenderRole, setRecommenderRole] = useState("Teacher");
@@ -45,7 +45,6 @@ export default function RecommendationsPage() {
  method: "POST",
  headers: {
  "Content-Type": "application/json",
- ...(apiKey ? { "x-audri-api-key": apiKey } : {}),
  ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
  },
  body: JSON.stringify({
@@ -114,7 +113,9 @@ export default function RecommendationsPage() {
  {RECOMMENDER_TYPES.map((t) => (
  <button
  key={t.value}
+ type="button"
  onClick={() => setRecommenderRole(t.value)}
+ aria-pressed={recommenderRole === t.value}
  title={t.desc}
  className="text-xs px-3 py-2 rounded-lg transition-colors font-medium"
  style={{

@@ -104,7 +104,7 @@ export default function GapAnalysisPage() {
       setGapAnalysis(analysis);
       toast.success("Gap analysis complete!");
     } catch {
-      toast.error("Gap analysis failed. Check your API key.");
+      toast.error("Gap analysis could not finish. Try again in a moment.");
     } finally {
       setRunning(false);
     }

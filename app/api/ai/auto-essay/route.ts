@@ -36,7 +36,6 @@ export async function POST(req: NextRequest) {
  if (!auth.ok) return auth.response;
  const body = await readJsonBody<AutoEssayBody>(req, 600_000);
  const { pastedText, url, profile, stories, extraNotes, toneId, promptOverride, wordLimitOverride } = body;
- const apiKey = req.headers.get("x-audri-api-key") ?? undefined;
 
  if (!profile) {
  return NextResponse.json({ error: "Build your profile first so the essay is about YOU." }, { status: 400 });
@@ -102,7 +101,7 @@ export async function POST(req: NextRequest) {
  reservedFor = userEmail;
 
  // ── Step 1: parse the scholarship ───────────────────────────────────────
- const scholarship = await parseScholarshipWithAI(scholarshipText, apiKey);
+ const scholarship = await parseScholarshipWithAI(scholarshipText);
 
  if (!scholarship.title || scholarship.title === "Unknown" || (scholarship.confidenceScore ?? 0) < 20) {
  await releaseEssayReservation(userEmail);
@@ -130,7 +129,7 @@ Cover, in short labeled lines:
 RAW WEBSITE TEXT:
 ${funderBackground}`,
  "You are a research analyst distilling an organization's public website into a brief for essay mission-alignment. Be concrete and skeptical, extract what they demonstrably value, not marketing fluff.",
- { maxTokens: 700, apiKey }
+ { maxTokens: 700 }
  );
  } catch {
  funderIntelligence = undefined; // research is a bonus, never block the essay on it
@@ -165,7 +164,6 @@ ${funderBackground}`,
  funderIntelligence,
  extraNotes: extraNotes?.trim() || undefined,
  toneDirective: getToneDirective(toneId),
- apiKey,
  };
 
  const strategy = await generateEssayStrategy(input);

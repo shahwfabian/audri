@@ -15,7 +15,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
   const enabledSources = scholarshipSources.filter((s) => s.enabled);
   const summary: Array<{ source: string; saved: number; success: boolean; error?: string }> = [];
 
@@ -30,7 +29,7 @@ export async function GET(req: Request) {
   // Ingest each source
   for (const source of enabledSources) {
     try {
-      const saved = await ingestSource(source, apiKey);
+      const saved = await ingestSource(source);
       summary.push({ source: source.name, saved: saved.length, success: true });
     } catch (err) {
       summary.push({

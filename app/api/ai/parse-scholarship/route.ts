@@ -9,7 +9,6 @@ export async function POST(req: NextRequest) {
  if (!auth.ok) return auth.response;
  const body = await readJsonBody<{ text?: string }>(req, 300_000);
  const { text } = body;
- const apiKey = req.headers.get("x-audri-api-key") ?? undefined;
 
  if (!text?.trim()) {
  return NextResponse.json({ error: "No text provided." }, { status: 400 });
@@ -18,7 +17,7 @@ export async function POST(req: NextRequest) {
  return NextResponse.json({ error: "Paste more text, we need the full scholarship description." }, { status: 400 });
  }
 
- const result = await parseScholarshipWithAI(text, apiKey);
+ const result = await parseScholarshipWithAI(text);
 
  if (!result.title || result.title === "Unknown" || (result.confidenceScore ?? 0) < 20) {
  return NextResponse.json(

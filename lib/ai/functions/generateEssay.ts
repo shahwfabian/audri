@@ -20,7 +20,6 @@ interface EssayGenerationInput {
   extraNotes?: string;
   /** Selected voice/tone directive from the 1,440-voice library */
   toneDirective?: string;
-  apiKey?: string;
 }
 
 interface EssayStrategyResult {
@@ -121,7 +120,6 @@ Return JSON:
 
   return callAIJSON<EssayStrategyResult>(prompt, SYSTEM_PROMPTS.ESSAY_WRITER, {
     maxTokens: 2048,
-    apiKey: input.apiKey,
   });
 }
 
@@ -178,14 +176,13 @@ Output ONLY the essay text — no title, no labels, no preamble.`;
 
   const draft = await callAI(prompt, SYSTEM_PROMPTS.ESSAY_WRITER, {
     maxTokens: 3000,
-    apiKey: input.apiKey,
   });
   let polished = enforceHouseStyle(draft);
   if (countWords(polished) > target) {
     polished = enforceHouseStyle(await callAI(
       "Shorten the essay below to no more than " + target + " words. Preserve every factual detail. Keep the student's voice. Output only the revised essay.\n\n" + polished,
       SYSTEM_PROMPTS.ESSAY_WRITER,
-      { maxTokens: 3000, apiKey: input.apiKey }
+      { maxTokens: 3000 }
     ));
   }
   return clampToWordLimit(polished, target);
@@ -199,8 +196,7 @@ interface EssayCritiqueResult {
 export async function critiqueEssay(
   essay: string,
   prompt: string,
-  wordLimit?: number,
-  apiKey?: string
+  wordLimit?: number
 ): Promise<EssayCritiqueResult> {
   const wordCount = essay.trim().split(/\s+/).length;
 
@@ -241,15 +237,13 @@ Return JSON:
 
   return callAIJSON<EssayCritiqueResult>(aiPrompt, SYSTEM_PROMPTS.ESSAY_WRITER, {
     maxTokens: 2048,
-    apiKey,
   });
 }
 
 export async function reviseEssay(
   essay: string,
   revisionInstructions: string,
-  wordLimit?: number,
-  apiKey?: string
+  wordLimit?: number
 ): Promise<string> {
   const prompt = `Revise this scholarship essay per the instructions, preserving the student's voice and every real fact. Apply show-don't-tell discipline to anything you touch: scenes over statements, senses over summary, growth visible. Keep the hook immediate, transitions invisible, paragraph rhythm human, and the ending an open loop — run the Final Narrative Audit before returning.
 
@@ -265,6 +259,6 @@ HOUSE STYLE (ABSOLUTE): zero em dashes, zero three-item lists / tricolons.
 
 Output only the revised essay text. No title, no labels, no explanation.`;
 
-  const revised = await callAI(prompt, SYSTEM_PROMPTS.ESSAY_WRITER, { maxTokens: 3000, apiKey });
+  const revised = await callAI(prompt, SYSTEM_PROMPTS.ESSAY_WRITER, { maxTokens: 3000 });
   return clampToWordLimit(enforceHouseStyle(revised), wordLimit);
 }

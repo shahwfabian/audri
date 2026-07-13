@@ -12,8 +12,6 @@ export async function POST(req: Request) {
  const body = await readJsonBody<{ rawText?: string }>(req, 300_000);
  const { rawText } = body;
 
- // Client can pass their API key as a header (from Settings page)
- const apiKeyOverride = req.headers.get("x-audri-api-key") ?? undefined;
 
  if (!rawText || rawText.trim().length < 50) {
  return NextResponse.json(
@@ -22,7 +20,7 @@ export async function POST(req: Request) {
  );
  }
 
- const parsedScholarship = await parseScholarshipWithAI(rawText, apiKeyOverride);
+ const parsedScholarship = await parseScholarshipWithAI(rawText);
 
  if (!parsedScholarship.title || parsedScholarship.title === "Unknown" || (parsedScholarship.confidenceScore ?? 0) < 20) {
  return NextResponse.json(

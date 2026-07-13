@@ -161,7 +161,7 @@ export default function ProfilePage() {
  setShowResumeInput(false);
  toast.success(`Profile updated! ${data.achievements.length} achievements extracted.`);
  } catch {
- toast.error("Could not parse resume. Check your API key.");
+ toast.error("Could not read that resume. Try again in a moment.");
  } finally {
  setUploading(false);
  }
@@ -348,26 +348,36 @@ export default function ProfilePage() {
  </div>
 
  <div className="mt-4 grid md:grid-cols-2 gap-4">
- <label className="flex items-center gap-3 cursor-pointer">
- <div
- onClick={() => editingEligibility && setIsFirstGen(!isFirstGen)}
- className="w-10 h-5 rounded-full transition-colors cursor-pointer relative"
+ <div className="flex items-center gap-3">
+ <button
+ type="button"
+ role="switch"
+ aria-checked={isFirstGen}
+ aria-label="First-generation college student"
+ onClick={() => setIsFirstGen(!isFirstGen)}
+ disabled={!editingEligibility}
+ className="w-10 h-5 rounded-full transition-colors cursor-pointer relative disabled:cursor-not-allowed disabled:opacity-60"
  style={{ background: isFirstGen ? "var(--gold)" : "var(--border-2)" }}
  >
- <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all bg-white" style={{ left: isFirstGen ? "calc(100% - 18px)" : "2px" }} />
- </div>
+ <span className="absolute top-0.5 w-4 h-4 rounded-full transition-all bg-white" style={{ left: isFirstGen ? "calc(100% - 18px)" : "2px" }} />
+ </button>
  <span className="text-sm" style={{ color: "var(--text-2)" }}>First-generation college student</span>
- </label>
- <label className="flex items-center gap-3 cursor-pointer">
- <div
- onClick={() => editingEligibility && setIsInternational(!isInternational)}
- className="w-10 h-5 rounded-full transition-colors cursor-pointer relative"
+ </div>
+ <div className="flex items-center gap-3">
+ <button
+ type="button"
+ role="switch"
+ aria-checked={isInternational}
+ aria-label="International student"
+ onClick={() => setIsInternational(!isInternational)}
+ disabled={!editingEligibility}
+ className="w-10 h-5 rounded-full transition-colors cursor-pointer relative disabled:cursor-not-allowed disabled:opacity-60"
  style={{ background: isInternational ? "var(--gold)" : "var(--border-2)" }}
  >
- <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all bg-white" style={{ left: isInternational ? "calc(100% - 18px)" : "2px" }} />
- </div>
+ <span className="absolute top-0.5 w-4 h-4 rounded-full transition-all bg-white" style={{ left: isInternational ? "calc(100% - 18px)" : "2px" }} />
+ </button>
  <span className="text-sm" style={{ color: "var(--text-2)" }}>International student</span>
- </label>
+ </div>
  </div>
 
  <div className="mt-4">
@@ -378,8 +388,10 @@ export default function ProfilePage() {
  return (
  <button
  key={d}
+ type="button"
  onClick={() => editingEligibility && toggleDemographic(d)}
  disabled={!editingEligibility}
+ aria-pressed={!!active}
  className="text-xs px-3 py-1.5 rounded-full border font-medium transition-all"
  style={{
  background: active ? "var(--gold-10)" : "var(--surface-2)",
@@ -536,7 +548,7 @@ export default function ProfilePage() {
  <p className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>{ach.startDate ?? ""}{ach.endDate ? `, ${ach.endDate}` : ""}</p>
  )}
  </div>
- <button onClick={() => removeAchievement(ach.id)} className="shrink-0 mt-0.5 transition-colors" style={{ color: "var(--text-3)" }}
+ <button type="button" onClick={() => removeAchievement(ach.id)} aria-label={`Remove ${ach.title}`} className="shrink-0 mt-0.5 transition-colors" style={{ color: "var(--text-3)" }}
  onMouseEnter={e => (e.currentTarget.style.color = "var(--red)")}
  onMouseLeave={e => (e.currentTarget.style.color = "var(--text-3)")}
  >

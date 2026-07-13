@@ -126,7 +126,7 @@ export default function EssaysPage() {
         }
       } catch { /* scoring failed silently */ } finally { setScoring(false); }
     } catch {
-      toast.error("Essay generation failed. Check your API key.");
+      toast.error("Essay generation could not finish. Try again in a moment.");
     } finally {
       setGenerating(false);
     }
@@ -150,7 +150,7 @@ export default function EssaysPage() {
       setRevisionNote("");
       toast.success("Essay revised!");
     } catch {
-      toast.error("Revision failed. Check your API key.");
+      toast.error("Revision could not finish. Try again in a moment.");
     } finally { setRevising(false); }
   }
 

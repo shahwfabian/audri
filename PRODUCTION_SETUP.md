@@ -20,7 +20,15 @@ Set a stable AUDRI_SECRET with at least 32 random bytes. If local customer recor
 
 Set a different random value for CRON_SECRET. Configure the hosting scheduler to send it as the bearer credential.
 
-## 3. Stripe
+## 3. Managed AI
+
+1. Set ANTHROPIC_API_KEY only in the server environment.
+2. Set AI_MODEL and AI_MODEL_FAST to approved production model IDs.
+3. Enable provider billing, a monthly spend limit, and usage alerts.
+4. Confirm no AI credential is exposed as a NEXT_PUBLIC variable or sent by the browser.
+5. Test generation through a normal customer account. Customers never provide an API key.
+
+## 4. Stripe
 
 1. Create the Audri Pro recurring product at the approved monthly price.
 2. Copy its price ID to STRIPE_PRO_PRICE_ID.
@@ -33,18 +41,18 @@ Set a different random value for CRON_SECRET. Configure the hosting scheduler to
 
 Manual activation is disabled by default. Keep AUDRI_ALLOW_MANUAL_ACTIVATION false.
 
-## 4. Transactional email
+## 5. Transactional email
 
 1. Verify the sending domain with Resend.
 2. Set RESEND_API_KEY.
 3. Set EMAIL_FROM to the verified sender.
 4. Request a password reset and confirm the link expires after 30 minutes.
 
-## 5. Monitoring
+## 6. Monitoring
 
 Create a Sentry project. Set SENTRY_DSN and NEXT_PUBLIC_SENTRY_DSN. Configure an alert for new production errors and elevated request failures.
 
-## 6. Hosting
+## 7. Hosting
 
 1. Set NEXT_PUBLIC_APP_URL to the HTTPS production origin.
 2. Add every variable from .env.example through the host's encrypted environment settings.
@@ -53,7 +61,7 @@ Create a Sentry project. Set SENTRY_DSN and NEXT_PUBLIC_SENTRY_DSN. Configure an
 5. Confirm /api/health returns HTTP 200.
 6. Verify signup, recovery, generation, checkout, cancellation, export, and deletion on the production domain.
 
-## 7. Business review
+## 8. Business review
 
 Have qualified counsel review the Terms and Privacy Policy. Publish a monitored support address. Confirm the policy for minors, refunds, retention, and backup deletion.
 

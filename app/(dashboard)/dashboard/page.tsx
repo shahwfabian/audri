@@ -444,7 +444,9 @@ export default function DashboardPage() {
  </div>
  <div className="flex items-center gap-3">
  <button
+ type="button"
  onClick={() => adjustGoal(-1)}
+ aria-label="Decrease today's application goal"
  className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
  style={{ background: "var(--surface-2)", border: "1px solid var(--border-2)", color: "var(--text-2)" }}
  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--gold-dark)"; (e.currentTarget as HTMLElement).style.color = "var(--gold)"; }}
@@ -457,7 +459,9 @@ export default function DashboardPage() {
  <div className="text-xs" style={{ color: "var(--text-3)" }}>applications</div>
  </div>
  <button
+ type="button"
  onClick={() => adjustGoal(1)}
+ aria-label="Increase today's application goal"
  className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
  style={{ background: "var(--surface-2)", border: "1px solid var(--border-2)", color: "var(--text-2)" }}
  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = "var(--gold-dark)"; (e.currentTarget as HTMLElement).style.color = "var(--gold)"; }}
@@ -496,7 +500,9 @@ export default function DashboardPage() {
  {daily?.items.map((item) => (
  <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl transition-colors group" style={{ background: item.done ? "rgba(32,200,120,0.06)" : "var(--surface-2)", border: `1px solid ${item.done ? "rgba(32,200,120,0.2)" : "var(--border)"}` }}>
  <button
+ type="button"
  onClick={() => toggleItem(item.id)}
+ aria-label={item.done ? `Mark ${item.text} incomplete` : `Mark ${item.text} complete`}
  className="shrink-0 transition-colors"
  style={{
  width: 20, height: 20, borderRadius: "50%",
@@ -511,8 +517,10 @@ export default function DashboardPage() {
  {item.text}
  </span>
  <button
+ type="button"
  onClick={() => removeItem(item.id)}
- className="opacity-0 group-hover:opacity-100 transition-opacity"
+ aria-label={`Remove ${item.text} from today's list`}
+ className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity"
  style={{ color: "var(--text-3)" }}
  onMouseEnter={(e) => (e.currentTarget.style.color = "var(--red)")}
  onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-3)")}

@@ -10,10 +10,7 @@ export function hasServerKey(): boolean {
   return !!k && k !== PLACEHOLDER;
 }
 
-export function getAnthropicClient(apiKeyOverride?: string): Anthropic {
-  if (apiKeyOverride && apiKeyOverride !== PLACEHOLDER) {
-    return new Anthropic({ apiKey: apiKeyOverride });
-  }
+export function getAnthropicClient(): Anthropic {
   if (!_envClient) {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey || apiKey === PLACEHOLDER) {
@@ -35,7 +32,6 @@ function requireModel(m: string): string {
 
 export interface CallOptions {
   maxTokens?: number;
-  apiKey?: string;
   temperature?: number;
 }
 
@@ -47,7 +43,7 @@ export async function callAI(
   const opts: CallOptions =
     typeof maxTokensOrOptions === "number" ? { maxTokens: maxTokensOrOptions } : maxTokensOrOptions;
 
-  const client = getAnthropicClient(opts.apiKey);
+  const client = getAnthropicClient();
 
   const message = await client.messages.create({
     model: requireModel(AI_MODEL),

@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
  const auth = await guardAIRequest(req, "generate-essay", 12);
  if (!auth.ok) return auth.response;
  const body = await readJsonBody<GenerateEssayBody>(req, 500_000);
- const apiKey = req.headers.get("x-audri-api-key") ?? undefined;
  const userEmail = auth.session.email;
 
  if (body.mode === "revise") {
@@ -33,7 +32,7 @@ export async function POST(req: NextRequest) {
  );
  }
  reservedFor = userEmail;
- const revised = await reviseEssay(essay, revisionInstructions, wordLimit, apiKey);
+ const revised = await reviseEssay(essay, revisionInstructions, wordLimit);
  reservedFor = null;
  return NextResponse.json({ essay: revised, quota: reservation.user ? { plan: reservation.user.plan, remaining: reservation.user.essaysRemaining } : undefined });
  }
@@ -61,7 +60,6 @@ export async function POST(req: NextRequest) {
  extraNotes,
  scholarshipName: scholarshipName ?? "Scholarship Application",
  scholarshipMission,
- apiKey,
  };
 
  const strategy = await generateEssayStrategy(input);

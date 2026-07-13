@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
+import { AudriLogo } from "@/components/AudriLogo";
 import { generateId } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -10,7 +11,6 @@ import {
  ArrowLeft,
  Keyboard,
  CheckCircle2,
- Sparkles,
  Loader2,
  ShieldCheck,
  Target,
@@ -164,9 +164,7 @@ export default function OnboardingPage() {
  <div className="mb-8">
  <div className="flex items-center justify-between mb-3">
  <div className="flex items-center gap-2.5">
- <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center" style={{ boxShadow: "0 0 16px var(--gold-25)" }}>
- <Sparkles className="w-4 h-4" style={{ color: "#080808" }} />
- </div>
+ <AudriLogo size={26} />
  <span className="font-bold text-lg text-gradient">Audri</span>
  </div>
  <span className="text-sm" style={{ color: "var(--text-3)" }}>Step {step} of {STEPS.length}</span>
@@ -266,7 +264,9 @@ export default function OnboardingPage() {
  ].map((mode) => (
  <button
  key={mode.id}
+ type="button"
  onClick={() => setResumeMode(mode.id as typeof resumeMode)}
+ aria-pressed={resumeMode === mode.id}
  className="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all"
  style={{
  background: resumeMode === mode.id ? "rgba(255, 255, 255,0.10)" : "var(--surface-2)",
@@ -342,7 +342,9 @@ export default function OnboardingPage() {
  {[{ value: true, label: "Yes" }, { value: false, label: "No" }].map((opt) => (
  <button
  key={String(opt.value)}
+ type="button"
  onClick={() => setIsFirstGen(opt.value)}
+ aria-pressed={isFirstGen === opt.value}
  className="flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all"
  style={{
  background: isFirstGen === opt.value ? "rgba(255, 255, 255,0.10)" : "var(--surface-2)",
@@ -354,7 +356,9 @@ export default function OnboardingPage() {
  </button>
  ))}
  <button
+ type="button"
  onClick={() => setIsFirstGen(null)}
+ aria-pressed={isFirstGen === null}
  className="flex-1 py-2.5 rounded-xl border text-sm font-medium"
  style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-3)" }}
  >

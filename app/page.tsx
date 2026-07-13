@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, Zap, BarChart3, FileText, Sparkles, Search, Clock, Brain, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAppStore } from "@/lib/store";
+import { AudriLogo } from "@/components/AudriLogo";
 
 const features = [
  {
@@ -87,15 +88,13 @@ export default function LandingPage() {
  <nav className="border-b sticky top-0 z-50 backdrop-blur-md" style={{ borderColor: "var(--border)", background: "rgba(8,8,8,0.85)" }}>
  <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
  <div className="flex items-center gap-2.5">
- <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center">
- <Sparkles className="w-4 h-4" style={{ color: "#080808" }} />
- </div>
+ <AudriLogo size={28} />
  <span className="font-bold text-xl" style={{ color: "var(--text)" }}>Audri</span>
  </div>
  <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: "var(--text-2)" }}>
  <a href="#features" className="hover:text-[var(--gold)] transition-colors">Features</a>
  <a href="#how-it-works" className="hover:text-[var(--gold)] transition-colors">How it works</a>
- <a href="#highlights" className="hover:text-[var(--gold)] transition-colors">Features</a>
+ <a href="#highlights" className="hover:text-[var(--gold)] transition-colors">Highlights</a>
  </div>
  <div className="flex items-center gap-3">
  <Link href="/login" className="text-sm transition-colors hover:text-[var(--gold)]" style={{ color: "var(--text-2)" }}>

@@ -13,13 +13,13 @@
  * still win over any voice.
  */
 
-interface Facet {
+export interface ToneFacet {
  key: string;
  label: string;
  directive: string;
 }
 
-const ARCHETYPES: Facet[] = [
+export const TONE_ARCHETYPES: ToneFacet[] = [
  { key: "storyteller", label: "Storyteller", directive: "lead with narrative motion and let specific scenes carry the meaning" },
  { key: "analyst", label: "Analyst", directive: "reason in clear cause-and-effect, drawing a precise line from experience to insight" },
  { key: "optimist", label: "Optimist", directive: "look forward with earned hope, finding the opening in every obstacle without denying it" },
@@ -42,7 +42,7 @@ const ARCHETYPES: Facet[] = [
  { key: "trailblazer", label: "Trailblazer", directive: "sound independent and unconventional, the first to try, unbothered by the usual path" },
 ];
 
-const TEXTURES: Facet[] = [
+export const TONE_TEXTURES: ToneFacet[] = [
  { key: "warm", label: "Warm", directive: "generous human warmth" },
  { key: "measured", label: "Measured", directive: "calm, composed, deliberate control" },
  { key: "bold", label: "Bold", directive: "assertive, high-conviction energy" },
@@ -57,7 +57,7 @@ const TEXTURES: Facet[] = [
  { key: "candid", label: "Candid", directive: "frank, disarming honesty" },
 ];
 
-const REGISTERS: Facet[] = [
+export const TONE_REGISTERS: ToneFacet[] = [
  { key: "conversational", label: "Conversational", directive: "a natural, spoken cadence" },
  { key: "polished", label: "Polished", directive: "clean, refined, professional phrasing" },
  { key: "literary", label: "Literary", directive: "evocative, artful language with varied sentence rhythm" },
@@ -66,9 +66,9 @@ const REGISTERS: Facet[] = [
  { key: "intimate", label: "Intimate", directive: "a close, confiding, personal voice" },
 ];
 
-const A = Object.fromEntries(ARCHETYPES.map((f) => [f.key, f]));
-const T = Object.fromEntries(TEXTURES.map((f) => [f.key, f]));
-const R = Object.fromEntries(REGISTERS.map((f) => [f.key, f]));
+const A = Object.fromEntries(TONE_ARCHETYPES.map((f) => [f.key, f]));
+const T = Object.fromEntries(TONE_TEXTURES.map((f) => [f.key, f]));
+const R = Object.fromEntries(TONE_REGISTERS.map((f) => [f.key, f]));
 
 export interface ToneOption {
  id: string; // "archetype.texture.register"
@@ -79,9 +79,9 @@ export interface ToneOption {
 /** The full, generated library. 20 × 12 × 6 = 1,440 voices. */
 export const TONE_LIBRARY: ToneOption[] = (() => {
  const out: ToneOption[] = [];
- for (const a of ARCHETYPES) {
- for (const t of TEXTURES) {
- for (const r of REGISTERS) {
+ for (const a of TONE_ARCHETYPES) {
+ for (const t of TONE_TEXTURES) {
+ for (const r of TONE_REGISTERS) {
  out.push({
  id: `${a.key}.${t.key}.${r.key}`,
  label: `${t.label} ${a.label} · ${r.label}`,
@@ -106,6 +106,42 @@ export const FEATURED_TONE_IDS = [
 ];
 
 export const DEFAULT_TONE_ID = "storyteller.warm.conversational";
+
+export interface ToneSelection {
+ archetype: string;
+ texture: string;
+ register: string;
+}
+
+export function parseToneId(id: string | undefined | null): ToneSelection | undefined {
+ if (!id) return undefined;
+ const [archetype, texture, register] = id.split(".");
+ if (!A[archetype] || !T[texture] || !R[register]) return undefined;
+ return { archetype, texture, register };
+}
+
+export function composeToneId(selection: ToneSelection): string {
+ return `${selection.archetype}.${selection.texture}.${selection.register}`;
+}
+
+export function searchToneOptions(query: string, limit = 60): ToneOption[] {
+ const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+ if (!terms.length) return [];
+ return TONE_LIBRARY.filter((option) => terms.every((term) => option.hint.includes(term))).slice(0, limit);
+}
+
+function sentenceCase(text: string): string {
+ return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+export function getToneDescription(id: string | undefined | null): string | undefined {
+ const selection = parseToneId(id);
+ if (!selection) return undefined;
+ const archetype = A[selection.archetype];
+ const texture = T[selection.texture];
+ const register = R[selection.register];
+ return `${sentenceCase(archetype.directive)}. It carries ${texture.directive} and uses ${register.directive}.`;
+}
 
 /** Compose the actual writing directive injected into the essay prompt. */
 export function getToneDirective(id: string | undefined | null): string | undefined {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -18,7 +18,6 @@ import {
  Zap,
  ChevronRight,
  Settings,
- Key,
  Mail,
  BookMarked,
  Quote,
@@ -47,21 +46,13 @@ const navItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
  const router = useRouter();
  const pathname = usePathname();
- const { isLoggedIn, user, logout, sidebarOpen, setSidebarOpen, profile, onboardingComplete, apiKey, _hasHydrated } =
+ const { isLoggedIn, user, logout, sidebarOpen, setSidebarOpen, profile, onboardingComplete, _hasHydrated } =
  useAppStore();
- const [serverHasKey, setServerHasKey] = useState(true); // optimistic, avoids badge flash
 
  useEffect(() => {
  if (!_hasHydrated) return;
  if (!isLoggedIn) router.push("/login");
  }, [isLoggedIn, _hasHydrated, router]);
-
- useEffect(() => {
- fetch("/api/ai/has-key")
- .then((r) => r.json())
- .then((d) => setServerHasKey(!!d.hasKey))
- .catch(() => setServerHasKey(false));
- }, []);
 
  if (!_hasHydrated) {
  return (
@@ -99,12 +90,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
  {sidebarOpen ? (
  <div className="flex items-center justify-between w-full">
  <Link href="/generate" className="flex items-center gap-2.5">
- <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--surface-2)", border: "1px solid var(--gold-25)", boxShadow: "0 0 16px var(--gold-25)" }}>
- <AudriLogo size={22} />
+ <div className="w-8 h-8 flex items-center justify-center shrink-0">
+ <AudriLogo size={26} />
  </div>
  <span className="font-bold text-lg text-gradient">Audri</span>
  </Link>
- <button onClick={() => setSidebarOpen(false)} className="transition-colors" style={{ color: "var(--text-3)" }}
+ <button type="button" onClick={() => setSidebarOpen(false)} aria-label="Collapse sidebar" className="transition-colors" style={{ color: "var(--text-3)" }}
  onMouseEnter={e => (e.currentTarget.style.color = "var(--text-2)")}
  onMouseLeave={e => (e.currentTarget.style.color = "var(--text-3)")}
  >
@@ -113,11 +104,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
  </div>
  ) : (
  <button
+ type="button"
  onClick={() => setSidebarOpen(true)}
- className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto"
- style={{ background: "var(--surface-2)", border: "1px solid var(--gold-25)", boxShadow: "0 0 16px var(--gold-25)" }}
+ aria-label="Expand sidebar"
+ className="w-8 h-8 flex items-center justify-center mx-auto"
  >
- <AudriLogo size={22} />
+ <AudriLogo size={26} />
  </button>
  )}
  </div>
@@ -192,8 +184,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
  <div className="text-xs truncate" style={{ color: "var(--text-3)" }}>{user?.email}</div>
  </div>
  <button
+ type="button"
  onClick={handleLogout}
  title="Sign out"
+ aria-label="Sign out"
  className="transition-colors"
  style={{ color: "var(--text-3)" }}
  onMouseEnter={e => (e.currentTarget.style.color = "var(--red)")}
@@ -212,7 +206,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
  {/* Top bar */}
  <div className="h-16 flex items-center px-6 sticky top-0 z-30" style={{ background: "rgba(8,8,8,0.90)", borderBottom: "1px solid var(--border)", backdropFilter: "blur(8px)" }}>
  {!sidebarOpen && (
- <button onClick={() => setSidebarOpen(true)} className="mr-4 transition-colors" style={{ color: "var(--text-2)" }}
+ <button type="button" onClick={() => setSidebarOpen(true)} aria-label="Expand sidebar" className="mr-4 transition-colors" style={{ color: "var(--text-2)" }}
  onMouseEnter={e => (e.currentTarget.style.color = "var(--text)")}
  onMouseLeave={e => (e.currentTarget.style.color = "var(--text-2)")}
  >
@@ -221,21 +215,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
  )}
  <div className="flex-1" />
  <div className="flex items-center gap-3">
- {!apiKey && !serverHasKey && (
- <Link
- href="/settings"
- className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 badge-red"
- >
- <Key className="w-3 h-3" />
- Add API key to enable AI
- </Link>
- )}
- {!onboardingComplete && (
+ {!onboardingComplete && pathname !== "/onboarding" && (
  <Link
  href="/onboarding"
  className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors badge-gray"
  >
- Complete onboarding →
+ Finish profile setup →
  </Link>
  )}
  <div className="w-8 h-8 rounded-full gradient-brand flex items-center justify-center" style={{ boxShadow: "0 0 12px var(--gold-15)" }}>

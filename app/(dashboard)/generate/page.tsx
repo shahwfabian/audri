@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useAppStore } from "@/lib/store";
 import { generateId } from "@/lib/utils";
@@ -60,7 +60,7 @@ const LOADING_STAGES_URL = [
 ];
 
 export default function GeneratePage() {
- const { profile, apiKey, user, pendingStoryAngle, setPendingStoryAngle, addEssayDraft } = useAppStore();
+ const { profile, user, pendingStoryAngle, setPendingStoryAngle, addEssayDraft } = useAppStore();
 
  const [pastedText, setPastedText] = useState("");
  const [scholarshipUrl, setScholarshipUrl] = useState("");
@@ -74,6 +74,7 @@ export default function GeneratePage() {
  const [showManualNudge, setShowManualNudge] = useState(false);
  const [paywalled, setPaywalled] = useState(false);
  const [quota, setQuota] = useState<{ plan: string; remaining: number | null } | null>(null);
+ const consumedStoryAngle = useRef<string | null>(null);
 
  // First visit? Point them at the manual before anything else.
  useEffect(() => {
@@ -86,9 +87,9 @@ export default function GeneratePage() {
 
  // A story angle chosen in Story Studio prefills the notes here.
  useEffect(() => {
- if (pendingStoryAngle) {
+ if (pendingStoryAngle && consumedStoryAngle.current !== pendingStoryAngle) {
+ consumedStoryAngle.current = pendingStoryAngle;
  // Idempotent: guard against React Strict-Mode double-invoke duplicating it.
- // eslint-disable-next-line react-hooks/set-state-in-effect
  setExtraNotes((prev) =>
  prev.includes(pendingStoryAngle) ? prev : prev ? `${prev}\n\n${pendingStoryAngle}` : pendingStoryAngle
  );
@@ -108,7 +109,6 @@ export default function GeneratePage() {
 
  const authHeaders: Record<string, string> = {
  "Content-Type": "application/json",
- ...(apiKey ? { "x-audri-api-key": apiKey } : {}),
  ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
  };
 

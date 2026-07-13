@@ -5,34 +5,33 @@
 
 /** User-facing messages for known error categories. */
 const ERROR_MAP: Record<string, string> = {
- // Billing, most common real-world failure
- "credit balance is too low": "Your Anthropic account has no credits. Go to console.anthropic.com/settings/billing to add credits, then try again.",
- "credit balance": "Your Anthropic account needs credits. Visit console.anthropic.com/settings/billing to top up.",
- "billing": "Billing issue on your Anthropic account. Go to console.anthropic.com/settings/billing.",
- "upgrade or purchase": "Your Anthropic account needs credits. Visit console.anthropic.com/settings/billing to add funds.",
- // Key issues
- "ANTHROPIC_API_KEY": "AI features need an API key. Go to Settings to add yours.",
- "API_KEY_MISSING": "AI features need an API key. Go to Settings to add yours.",
- "API key": "AI features need an API key. Go to Settings to add yours.",
- "not configured": "Go to Settings to finish setup.",
- "invalid_api_key": "Your API key is invalid. Double-check it in Settings.",
- "authentication_error": "API key rejected. Check it in Settings → API Key.",
+ // Provider configuration and billing are operator concerns, never customer setup tasks.
+ "credit balance is too low": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
+ "credit balance": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
+ "billing": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
+ "upgrade or purchase": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
+ "ANTHROPIC_API_KEY": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
+ "API_KEY_MISSING": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
+ "API key": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
+ "not configured": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
+ "invalid_api_key": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
+ "authentication_error": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
  // Rate limits
- "rate_limit": "Too many requests, Anthropic is rate limiting. Wait a moment and try again.",
+ "rate_limit": "Audri is handling high demand. Wait a moment and try again.",
  "rate limit": "Too many requests, wait a moment and try again.",
- "overloaded": "Anthropic's servers are busy right now. Try again in a few seconds.",
+ "overloaded": "Audri's AI service is busy right now. Try again in a few seconds.",
  // Network
  "fetch failed": "Could not reach the server. Check your internet connection.",
  "network": "Network error, check your connection and try again.",
  "timeout": "The request timed out. Try again in a moment.",
  "ECONNREFUSED": "Could not connect to the server.",
  // HTTP codes
- "401": "Authentication failed. Check your API key in Settings.",
- "403": "Access denied. Check your API key in Settings.",
+ "401": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
+ "403": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
  "500": "Something went wrong on our end. Please try again.",
  // Database
- "supabase": "Database connection failed. Check Settings → Database.",
- "SUPABASE": "Database connection failed. Check Settings → Database.",
+ "supabase": "Audri could not reach its data service. Please try again.",
+ "SUPABASE": "Audri could not reach its data service. Please try again.",
  // Input
  "too short": "Please paste more text, we need the full scholarship description.",
  "not a scholarship": "This doesn't look like a scholarship. Paste the full text from a scholarship page.",

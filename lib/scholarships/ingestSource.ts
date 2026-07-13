@@ -14,8 +14,7 @@ function chunkText(text: string, maxLength: number): string[] {
 }
 
 export async function ingestSource(
-  source: { name: string; url: string; type: string },
-  apiKey?: string
+  source: { name: string; url: string; type: string }
 ): Promise<ScholarshipRow[]> {
   const text = await fetchSourceText(source.url);
   const chunks = chunkText(text, 6000);
@@ -26,7 +25,7 @@ export async function ingestSource(
     if (chunk.trim().length < 100) continue;
 
     try {
-      const parsed = await parseScholarshipWithAI(chunk, apiKey);
+      const parsed = await parseScholarshipWithAI(chunk);
 
       // Skip if AI couldn't find a real scholarship
       if (!parsed.title || parsed.title === "Unknown" || (parsed.confidenceScore ?? 0) < 30) {

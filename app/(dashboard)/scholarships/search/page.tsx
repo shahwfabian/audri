@@ -454,7 +454,7 @@ export default function ScholarshipSearchPage() {
  className="input-dark w-full pl-11 pr-10 py-3 text-sm"
  />
  {query && (
- <button onClick={() => { setQuery(""); fetchScholarships(true); }} className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors" style={{ color: "var(--text-3)" }}>
+ <button type="button" onClick={() => { setQuery(""); fetchScholarships(true); }} aria-label="Clear scholarship search" className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors" style={{ color: "var(--text-3)" }}>
  <X className="w-4 h-4" />
  </button>
  )}

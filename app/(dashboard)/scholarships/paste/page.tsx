@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
  Loader2, CheckCircle2, AlertCircle, Clock, ExternalLink,
  BookmarkPlus, Sparkles, Info, ChevronDown, ChevronUp,
- Key, FileText,
+ FileText,
 } from "lucide-react";
 import type { Scholarship, SavedScholarship, ParsedScholarship } from "@/lib/types";
 import Link from "next/link";
@@ -18,7 +18,7 @@ type MatchResponse = Pick<SavedScholarship, "matchScore" | "probabilityScore" | 
 };
 
 export default function PasteScholarshipPage() {
- const { profile, apiKey, user, addScholarship } = useAppStore();
+ const { profile, user, addScholarship } = useAppStore();
 
  const [rawText, setRawText] = useState("");
  const [parsing, setParsing] = useState(false);
@@ -31,7 +31,6 @@ export default function PasteScholarshipPage() {
 
  const authHeaders: Record<string, string> = {
  "Content-Type": "application/json",
- ...(apiKey ? { "x-audri-api-key": apiKey } : {}),
  ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
  };
 
@@ -146,22 +145,6 @@ export default function PasteScholarshipPage() {
  </p>
  </div>
 
- {/* No API key warning */}
- {!apiKey && (
- <div className="rounded-2xl p-4 flex items-center justify-between gap-4" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)" }}>
- <div className="flex items-start gap-3">
- <Key className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "#F59E0B" }} />
- <div>
- <p className="font-semibold text-sm" style={{ color: "#F59E0B" }}>AI features require an API key</p>
- <p className="text-xs mt-0.5" style={{ color: "rgba(245,158,11,0.7)" }}>Add your Anthropic API key in Settings to parse scholarships, generate essays, and more.</p>
- </div>
- </div>
- <Link href="/settings" className="btn-gold shrink-0 text-sm">
- Go to Settings
- </Link>
- </div>
- )}
-
  {/* Input */}
  <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "1rem", padding: "1.5rem" }}>
  <label className="block text-xs font-semibold mb-3 uppercase tracking-wide" style={{ color: "var(--text-2)" }}>
@@ -193,14 +176,7 @@ export default function PasteScholarshipPage() {
  {parseError && !parsing && (
  <div className="rounded-2xl p-5 flex items-start gap-3" style={{ background: "rgba(229,80,80,0.08)", border: "1px solid rgba(229,80,80,0.25)" }}>
  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "var(--red)" }} />
- <div>
  <p className="font-semibold text-sm" style={{ color: "var(--red)" }}>{parseError}</p>
- {parseError.includes("API key") && (
- <Link href="/settings" className="text-xs underline mt-1 inline-block" style={{ color: "rgba(229,80,80,0.7)" }}>
- Add your API key in Settings →
- </Link>
- )}
- </div>
  </div>
  )}
 

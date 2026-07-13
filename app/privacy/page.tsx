@@ -22,7 +22,7 @@ export default function PrivacyPage() {
      <li>Supabase hosts production database records when configured.</li>
      <li>Resend delivers password-recovery email when configured.</li>
     </ul>
-    <p>A personal AI key is stored in your browser. When used, it passes through Audri&apos;s protected server route to the provider. Audri does not save that key in its account database.</p>
+    <p>AI requests are sent through Audri&apos;s protected server routes. Customers do not provide or store provider credentials in the browser.</p>
    </LegalSection>
    <LegalSection title="Retention and control">
     <p>Account data is retained while your account remains active. You can download your stored data or delete the account from Settings. Backup copies may persist for a limited recovery period after deletion.</p>
@@ -39,4 +39,3 @@ export default function PrivacyPage() {
   </LegalDocument>
  );
 }
-

@@ -233,7 +233,9 @@ export default function ResumePage() {
  {RESUME_TYPES.map(type => (
  <button
  key={type.value}
+ type="button"
  onClick={() => setSelectedType(type.value)}
+ aria-pressed={selectedType === type.value}
  className="w-full text-left p-3 rounded-xl transition-all"
  style={{
  background: selectedType === type.value ? "rgba(255, 255, 255,0.10)" : "var(--surface-2)",

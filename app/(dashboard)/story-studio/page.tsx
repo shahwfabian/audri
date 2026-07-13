@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
-import { toast } from "sonner";
 import {
  STORY_STARTERS,
  STORY_CATEGORIES,
@@ -38,7 +37,6 @@ export default function StoryStudioPage() {
 
  function selectAngle(starter: StoryStarter, metaphor?: string) {
  setPendingStoryAngle(starterToNote(starter, metaphor));
- toast.success("Story angle loaded into the generator.");
  router.push("/generate");
  }
 
@@ -53,7 +51,7 @@ export default function StoryStudioPage() {
  Find your angle. <span className="text-gradient">Then make it yours.</span>
  </h1>
  <p className="text-sm mt-3 max-w-xl mx-auto" style={{ color: "var(--text-2)", lineHeight: 1.7 }}>
- {STORY_STARTER_COUNT} story starters, from a delivery job that paid the bills to launching the
+ {STORY_STARTER_COUNT}{" "}story starters, from a delivery job that paid the bills to launching the
  region&apos;s biggest conference. Each comes with metaphor lenses that turn a fact into a scene,
  and the voices they pair with.
  </p>
@@ -95,7 +93,9 @@ export default function StoryStudioPage() {
  return (
  <div key={s.id} className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: `1px solid ${open ? "var(--gold-25)" : "var(--border-2)"}` }}>
  <button
+ type="button"
  onClick={() => setOpenId(open ? null : s.id)}
+ aria-expanded={open}
  className="w-full flex items-center gap-3 p-4 text-left transition-colors"
  >
  <div className="flex-1 min-w-0">
@@ -120,6 +120,7 @@ export default function StoryStudioPage() {
  {s.metaphors.map((m) => (
  <button
  key={m}
+ type="button"
  onClick={() => selectAngle(s, m)}
  className="w-full flex items-center gap-2 text-left rounded-xl px-3 py-2.5 transition-colors group"
  style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
@@ -147,6 +148,7 @@ export default function StoryStudioPage() {
  </div>
 
  <button
+ type="button"
  onClick={() => selectAngle(s)}
  className="btn-gold w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold"
  >

@@ -42,7 +42,6 @@ export async function POST(req: NextRequest) {
  scholarshipName,
  scholarshipFocus,
  } = body;
- const apiKey = req.headers.get("x-audri-api-key") ?? undefined;
 
  if (!profile) {
  return NextResponse.json({ error: "Build your profile first." }, { status: 400 });
@@ -76,7 +75,7 @@ ${anecdotes || "None provided, use achievement details and add [placeholder] not
 
 Write the complete letter now. Standard business letter body (no date/address block needed). Output only the letter text.`;
 
- const letter = await callAI(prompt, SYSTEM_PROMPTS.RECOMMENDER, { maxTokens: 2048, apiKey });
+ const letter = await callAI(prompt, SYSTEM_PROMPTS.RECOMMENDER, { maxTokens: 2048 });
 
  return NextResponse.json({ letter: enforceHouseStyle(letter) });
  } catch (err) {

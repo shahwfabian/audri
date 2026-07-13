@@ -168,7 +168,7 @@ export default function StoryVaultPage() {
  updateProfile({ stories: [...(profile.stories ?? []), ...newStories] });
  toast.success(`${newStories.length} stories extracted from your profile!`);
  } catch {
- toast.error("Could not extract stories. Check your API key.");
+ toast.error("Could not extract stories. Try again in a moment.");
  } finally {
  setExtracting(false);
  }

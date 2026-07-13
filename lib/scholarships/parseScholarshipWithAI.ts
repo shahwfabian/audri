@@ -1,8 +1,8 @@
 // lib/scholarships/parseScholarshipWithAI.ts
 
-import Anthropic from "@anthropic-ai/sdk";
 import type { Scholarship } from "./types";
 import { z } from "zod";
+import { AI_MODEL, getAnthropicClient } from "@/lib/ai/client";
 
 const scholarshipSchema = z.object({
  title: z.string(),
@@ -36,26 +36,12 @@ const scholarshipSchema = z.object({
  confidenceScore: z.number().min(0).max(100).optional(),
 });
 
-function getClient(apiKeyOverride?: string): Anthropic {
-  const apiKey =
-    apiKeyOverride ??
-    process.env.ANTHROPIC_API_KEY;
-
-  if (!apiKey || apiKey === "your_anthropic_api_key_here") {
-    throw new Error("API_KEY_MISSING");
-  }
-
-  return new Anthropic({ apiKey });
-}
-
-export async function parseScholarshipWithAI(
-  rawText: string,
-  apiKeyOverride?: string
-): Promise<Scholarship> {
-  const anthropic = getClient(apiKeyOverride);
+export async function parseScholarshipWithAI(rawText: string): Promise<Scholarship> {
+  const anthropic = getAnthropicClient();
+  if (!AI_MODEL) throw new Error("AI_MODEL is not configured");
 
   const response = await anthropic.messages.create({
-    model: process.env.AI_MODEL || "",
+    model: AI_MODEL,
     max_tokens: 2000,
     messages: [
       {

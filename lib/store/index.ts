@@ -12,10 +12,6 @@ import type {
 } from "@/lib/types";
 
 interface AppState {
- // API configuration
- apiKey: string | null;
- setApiKey: (key: string) => void;
-
  // Auth
  user: User | null;
  isLoggedIn: boolean;
@@ -119,10 +115,6 @@ function syncProfileToServer(token: string | undefined, profile: StudentProfile 
 export const useAppStore = create<AppState>()(
  persist(
  (set, get) => ({
- // API configuration
- apiKey: null,
- setApiKey: (key) => set({ apiKey: key }),
-
  user: null,
  isLoggedIn: false,
  setUser: (user) => set({ user, isLoggedIn: !!user }),
@@ -333,7 +325,6 @@ export const useAppStore = create<AppState>()(
  }
  },
  partialize: (s) => ({
- apiKey: null,
  user: s.user,
  isLoggedIn: s.isLoggedIn,
  profile: s.profile,

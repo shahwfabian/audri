@@ -102,7 +102,21 @@ function writeLocalUsers(users: StoredUser[]): void {
  fs.mkdirSync(dir, { recursive: true });
  const temporary = `${USERS_PATH}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
  fs.writeFileSync(temporary, JSON.stringify(users, null, 2), "utf-8");
- fs.renameSync(temporary, USERS_PATH);
+ try {
+  for (let attempt = 0; ; attempt += 1) {
+   try {
+    fs.renameSync(temporary, USERS_PATH);
+    break;
+   } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    const retryable = code === "EPERM" || code === "EACCES" || code === "EBUSY";
+    if (!retryable || attempt >= 5) throw error;
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20 * (attempt + 1));
+   }
+  }
+ } finally {
+  if (fs.existsSync(temporary)) fs.rmSync(temporary, { force: true });
+ }
 }
 
 async function updateLocal<T>(mutator: (users: StoredUser[]) => T): Promise<T> {
