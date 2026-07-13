@@ -1,7 +1,7 @@
 // app/api/scholarships/search/route.ts
 import { NextResponse } from "next/server";
 import { friendlyError } from "@/lib/errors";
-import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { getAdminDatabase } from "@/lib/db/admin";
 import { searchScholarships } from "@/lib/scrapers/index";
 
 export async function GET(req: Request) {
@@ -15,9 +15,8 @@ export async function GET(req: Request) {
     const offset = parseInt(searchParams.get("offset") ?? "0");
 
     // Use Supabase if configured, otherwise fall back to local JSON
-    if (isSupabaseConfigured()) {
-      const { createClient } = await import("@/lib/supabase/server");
-      const supabase = await createClient();
+    const supabase = getAdminDatabase();
+    if (supabase) {
 
       let dbQuery = supabase
         .from("scholarships")

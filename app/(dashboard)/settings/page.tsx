@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
 import {
  Key,
- Database,
  CheckCircle2,
  Eye,
  EyeOff,
@@ -14,20 +14,23 @@ import {
  Sparkles,
  Shield,
  Save,
+ Download,
+ Trash2,
 } from "lucide-react";
 
 export default function SettingsPage() {
- const { apiKey, user, supabaseUrl, supabaseAnonKey, setApiKey, setSupabaseConfig } = useAppStore();
+ const router = useRouter();
+ const { apiKey, user, setApiKey, logout } = useAppStore();
 
  const [anthropicKey, setAnthropicKey] = useState(apiKey ?? "");
- const [sbUrl, setSbUrl] = useState(supabaseUrl ?? "");
- const [sbKey, setSbKey] = useState(supabaseAnonKey ?? "");
  const [showAnthropicKey, setShowAnthropicKey] = useState(false);
- const [showSbKey, setShowSbKey] = useState(false);
  const [testing, setTesting] = useState(false);
  const [testResult, setTestResult] = useState<"ok" | "billing" | "invalid" | "fail" | null>(null);
  const [testDetail, setTestDetail] = useState<string | null>(null);
  const [serverHasKey, setServerHasKey] = useState<boolean | null>(null);
+ const [deletePassword, setDeletePassword] = useState("");
+ const [deleteConfirmation, setDeleteConfirmation] = useState("");
+ const [accountBusy, setAccountBusy] = useState(false);
 
  // Detect whether AI is already active server-side (hosted key) so we never
  // tell a student "AI is off" when it actually works out of the box.
@@ -53,7 +56,6 @@ export default function SettingsPage() {
  if (res.ok) {
  setTestResult("ok");
  setApiKey(anthropicKey.trim());
- if (sbUrl.trim() && sbKey.trim()) setSupabaseConfig(sbUrl.trim(), sbKey.trim());
  toast.success("API key verified and saved!");
  } else if (res.status === 402 && body.keyValid) {
  setTestResult("billing");
@@ -80,8 +82,53 @@ export default function SettingsPage() {
  function handleSaveWithoutTest() {
  if (!anthropicKey.trim()) { toast.error("Enter your API key first."); return; }
  setApiKey(anthropicKey.trim());
- if (sbUrl.trim() && sbKey.trim()) setSupabaseConfig(sbUrl.trim(), sbKey.trim());
  toast.success("Settings saved.");
+ }
+
+ async function downloadAccountData() {
+  if (!user) return;
+  setAccountBusy(true);
+  try {
+   const response = await fetch("/api/auth/account", { headers: user.token ? { Authorization: "Bearer " + user.token } : {} });
+   const data = await response.json();
+   if (!response.ok) {
+    toast.error(data.error ?? "Could not export your data.");
+    return;
+   }
+   const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+   const link = document.createElement("a");
+   link.href = url;
+   link.download = "audri-account-data.json";
+   link.click();
+   URL.revokeObjectURL(url);
+  } finally {
+   setAccountBusy(false);
+  }
+ }
+
+ async function deleteAccount() {
+  if (!user) return;
+  if (deleteConfirmation !== "DELETE") {
+   toast.error("Type DELETE to confirm.");
+   return;
+  }
+  setAccountBusy(true);
+  try {
+   const response = await fetch("/api/auth/account", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", ...(user.token ? { Authorization: "Bearer " + user.token } : {}) },
+    body: JSON.stringify({ password: deletePassword, confirmation: deleteConfirmation }),
+   });
+   const data = await response.json();
+   if (!response.ok) {
+    toast.error(data.error ?? "Could not delete your account.");
+    return;
+   }
+   logout();
+   router.replace("/");
+  } finally {
+   setAccountBusy(false);
+  }
  }
 
  const hasPersonalKey = !!apiKey;
@@ -241,76 +288,8 @@ export default function SettingsPage() {
  <ExternalLink className="w-3 h-3" />
  </a>
  <p className="text-xs mt-1" style={{ color: "var(--text-3)" }}>
- Your key is stored locally in your browser. It is never shared with anyone else.
+ Your key remains in this browser session and is cleared after a reload.
  </p>
- </div>
- </div>
-
- {/* Supabase */}
- <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "1rem", padding: "1.5rem" }}>
- <div className="flex items-center gap-3 mb-4">
- <div style={{ width: 36, height: 36, borderRadius: "0.75rem", background: "rgba(32,200,120,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
- <Database className="w-4 h-4" style={{ color: "var(--green)" }} />
- </div>
- <div>
- <h2 className="font-semibold text-sm" style={{ color: "var(--text)" }}>
- Supabase Database{" "}
- <span className="text-xs font-normal" style={{ color: "var(--text-3)" }}>(optional)</span>
- </h2>
- <p className="text-xs" style={{ color: "var(--text-3)" }}>Connect for persistent storage across devices</p>
- </div>
- </div>
-
- <div className="space-y-3">
- <div>
- <label className="block text-xs mb-1" style={{ color: "var(--text-3)" }}>Project URL</label>
- <input
- type="text"
- value={sbUrl}
- onChange={(e) => setSbUrl(e.target.value)}
- placeholder="https://your-project.supabase.co"
- className="input-dark w-full text-sm font-mono"
- />
- </div>
- <div>
- <label className="block text-xs mb-1" style={{ color: "var(--text-3)" }}>Anon / Public Key</label>
- <div className="relative">
- <input
- type={showSbKey ? "text" : "password"}
- value={sbKey}
- onChange={(e) => setSbKey(e.target.value)}
- placeholder="eyJ..."
- className="input-dark w-full text-sm font-mono pr-10"
- />
- <button
- onClick={() => setShowSbKey(!showSbKey)}
- className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
- style={{ color: "var(--text-3)" }}
- onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-2)")}
- onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-3)")}
- >
- {showSbKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
- </button>
- </div>
- </div>
- </div>
-
- <div className="mt-4 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
- <p className="text-xs" style={{ color: "var(--text-3)" }}>
- Without Supabase, Audri stores scholarship data in your browser. With Supabase, data persists across devices with full-text search.
- </p>
- <a
- href="https://supabase.com/dashboard"
- target="_blank"
- rel="noopener noreferrer"
- className="text-xs flex items-center gap-1 mt-1.5 transition-colors"
- style={{ color: "var(--gold-dark)" }}
- onMouseEnter={(e) => (e.currentTarget.style.color = "var(--gold)")}
- onMouseLeave={(e) => (e.currentTarget.style.color = "var(--gold-dark)")}
- >
- Get your Supabase credentials
- <ExternalLink className="w-3 h-3" />
- </a>
  </div>
  </div>
 
@@ -318,8 +297,30 @@ export default function SettingsPage() {
  <div className="rounded-2xl p-4 flex items-start gap-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
  <Shield className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "var(--text-3)" }} />
  <p className="text-xs leading-relaxed" style={{ color: "var(--text-3)" }}>
- Your API keys are stored only in your browser&apos;s local storage. They are sent directly from your device to the AI provider, never stored on Audri servers or shared with third parties.
+ Personal API keys remain only for the current browser session. Audri sends a key through its protected server route to the AI provider for each request. The application does not save the key on its server.
  </p>
+ </div>
+
+ <div className="rounded-2xl p-6 space-y-5" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+  <div>
+   <h2 className="font-semibold text-sm" style={{ color: "var(--text)" }}>Account data</h2>
+   <p className="text-xs mt-1" style={{ color: "var(--text-3)" }}>Download your stored information or permanently remove your account.</p>
+  </div>
+  <button type="button" onClick={downloadAccountData} disabled={accountBusy} className="btn-secondary inline-flex items-center gap-2 px-4 py-2.5 text-sm">
+   <Download className="w-4 h-4" /> Download my data
+  </button>
+  <div className="pt-5 space-y-3" style={{ borderTop: "1px solid var(--border)" }}>
+   <div className="flex items-center gap-2">
+    <Trash2 className="w-4 h-4" style={{ color: "var(--red)" }} />
+    <h3 className="font-semibold text-sm" style={{ color: "var(--text)" }}>Delete account</h3>
+   </div>
+   <p className="text-xs" style={{ color: "var(--text-3)" }}>This cancels an active subscription and permanently deletes stored account data.</p>
+   <input type="password" value={deletePassword} onChange={(event) => setDeletePassword(event.target.value)} placeholder="Current password" className="input-dark w-full text-sm" />
+   <input value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} placeholder="Type DELETE" className="input-dark w-full text-sm" />
+   <button type="button" onClick={deleteAccount} disabled={accountBusy} className="btn-secondary inline-flex items-center gap-2 px-4 py-2.5 text-sm" style={{ color: "var(--red)" }}>
+    Delete my account
+   </button>
+  </div>
  </div>
  </div>
  );

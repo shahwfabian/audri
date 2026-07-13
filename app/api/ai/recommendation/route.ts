@@ -28,7 +28,7 @@ interface RecommendationBody {
 
 export async function POST(req: NextRequest) {
  try {
- const auth = guardAIRequest(req, "recommendation");
+ const auth = await guardAIRequest(req, "recommendation");
  if (!auth.ok) return auth.response;
  const body = await readJsonBody<RecommendationBody>(req, 400_000);
  const {

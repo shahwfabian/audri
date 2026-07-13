@@ -30,7 +30,7 @@ export default function LoginPage() {
  toast.error(data.error ?? "Sign-in failed.");
  return;
  }
- signIn({ ...data.user, role: "STUDENT" }, data.profile ?? null);
+ signIn({ ...data.user, role: "STUDENT" }, data.profile ?? null, data.workspace ?? null);
  toast.success(`Welcome back, ${data.user.name}!`);
  router.push("/generate");
  } catch {
@@ -94,6 +94,9 @@ export default function LoginPage() {
  />
  </div>
  </div>
+ <div className="text-right mt-2">
+  <Link href="/forgot-password" className="text-xs hover:underline" style={{ color: "var(--text-2)" }}>Forgot password?</Link>
+ </div>
 
  <button
  type="submit"
@@ -117,9 +120,6 @@ export default function LoginPage() {
  </p>
  </div>
 
- <p className="text-xs text-center mt-4" style={{ color: "var(--text-3)" }}>
- Demo mode, any name and email will work.
- </p>
  </div>
  </div>
  </div>

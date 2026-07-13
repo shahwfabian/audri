@@ -36,7 +36,7 @@ export default function StoryStudioPage() {
  return [...map.entries()].filter(([, list]) => list.length > 0);
  }, [filtered]);
 
- function useAngle(starter: StoryStarter, metaphor?: string) {
+ function selectAngle(starter: StoryStarter, metaphor?: string) {
  setPendingStoryAngle(starterToNote(starter, metaphor));
  toast.success("Story angle loaded into the generator.");
  router.push("/generate");
@@ -120,7 +120,7 @@ export default function StoryStudioPage() {
  {s.metaphors.map((m) => (
  <button
  key={m}
- onClick={() => useAngle(s, m)}
+ onClick={() => selectAngle(s, m)}
  className="w-full flex items-center gap-2 text-left rounded-xl px-3 py-2.5 transition-colors group"
  style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "var(--gold-25)")}
@@ -147,7 +147,7 @@ export default function StoryStudioPage() {
  </div>
 
  <button
- onClick={() => useAngle(s)}
+ onClick={() => selectAngle(s)}
  className="btn-gold w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold"
  >
  <Sparkles className="w-4 h-4" /> Use this story in my essay

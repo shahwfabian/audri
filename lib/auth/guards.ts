@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { bearerFrom, verifySession, type Session } from "./crypto";
+import { getAdminDatabase } from "@/lib/db/admin";
 
 const DEFAULT_JSON_LIMIT = 256 * 1024;
 
@@ -28,13 +29,26 @@ export type SessionGuard =
  | { ok: true; session: Session }
  | { ok: false; response: NextResponse };
 
-export function requireSession(req: NextRequest | Request): SessionGuard {
- const session = verifySession(bearerFrom(req.headers.get("authorization")));
+export async function requireSession(req: NextRequest | Request): Promise<SessionGuard> {
+ const bearer = bearerFrom(req.headers.get("authorization"));
+ const cookie = req instanceof NextRequest ? req.cookies.get("audri_session")?.value : undefined;
+ const session = verifySession(bearer ?? cookie);
  if (!session) {
  return {
  ok: false,
  response: NextResponse.json(
  { error: "Not authorized. Please sign in again." },
+ { status: 401 }
+ ),
+ };
+ }
+ const { findUser } = await import("./users");
+ const user = await findUser(session.email);
+ if (!user || user.id !== session.userId || (user.sessionVersion || 1) !== session.sessionVersion) {
+ return {
+ ok: false,
+ response: NextResponse.json(
+ { error: "Your session has expired. Please sign in again." },
  { status: 401 }
  ),
  };
@@ -47,11 +61,26 @@ export function clientAddress(req: NextRequest | Request): string {
  return forwarded || req.headers.get("x-real-ip") || "unknown";
 }
 
-export function enforceRateLimit(
+export async function enforceRateLimit(
  key: string,
  limit: number,
  windowMs: number
-): NextResponse | null {
+): Promise<NextResponse | null> {
+ const database = getAdminDatabase();
+ if (database) {
+ const { data, error } = await database.rpc("check_audri_rate_limit", {
+ p_key: key,
+ p_limit: limit,
+ p_window_seconds: Math.max(1, Math.ceil(windowMs / 1000)),
+ });
+ if (error) throw new Error("Could not enforce rate limit: " + error.message);
+ const result = Array.isArray(data) ? data[0] : data;
+ if (result?.allowed) return null;
+ return NextResponse.json(
+ { error: "Too many requests. Wait a moment and try again." },
+ { status: 429, headers: { "Retry-After": String(result?.retry_after ?? 60) } }
+ );
+ }
  const now = Date.now();
  if (rateLimits.size > 5_000) {
  for (const [storedKey, window] of rateLimits) {
@@ -80,15 +109,15 @@ export function enforceRateLimit(
  );
 }
 
-export function guardAIRequest(
+export async function guardAIRequest(
  req: NextRequest | Request,
  routeName: string,
  limit = 20
-): SessionGuard {
- const auth = requireSession(req);
+): Promise<SessionGuard> {
+ const auth = await requireSession(req);
  if (!auth.ok) return auth;
 
- const limited = enforceRateLimit(
+ const limited = await enforceRateLimit(
  `ai:${routeName}:${auth.session.userId}`,
  limit,
  60_000

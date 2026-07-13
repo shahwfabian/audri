@@ -20,6 +20,7 @@ export default function SignupPage() {
  const [name, setName] = useState("");
  const [email, setEmail] = useState("");
  const [password, setPassword] = useState("");
+ const [acceptedTerms, setAcceptedTerms] = useState(false);
  const [loading, setLoading] = useState(false);
 
  async function handleSubmit(e: React.FormEvent) {
@@ -30,7 +31,7 @@ export default function SignupPage() {
  const res = await fetch("/api/auth/signup", {
  method: "POST",
  headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ name, email, password }),
+ body: JSON.stringify({ name, email, password, acceptedTerms }),
  });
  const data = await res.json();
  if (!res.ok || !data.user) {
@@ -86,7 +87,7 @@ export default function SignupPage() {
  <div className="mt-10 p-4 rounded-xl border" style={{ background: "var(--surface)", borderColor: "var(--border-2)" }}>
  <div className="text-xs font-semibold tracking-widest mb-2" style={{ color: "var(--gold)" }}>ETHICAL COMMITMENT</div>
  <p className="text-sm" style={{ color: "var(--text-2)" }}>
- Audri never fabricates your experiences. We help you tell your real story with the clarity and power it deserves.
+ Audri is designed to draft only from details you provide. Review every essay before you submit it.
  </p>
  </div>
  </div>
@@ -101,7 +102,7 @@ export default function SignupPage() {
  </div>
 
  <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--text)" }}>Create your account</h1>
- <p className="text-sm mb-8" style={{ color: "var(--text-2)" }}>Free to start. Build your scholarship profile in 2 minutes.</p>
+ <p className="text-sm mb-8" style={{ color: "var(--text-2)" }}>Free to start. A guided setup helps you build your scholarship profile.</p>
 
  <form onSubmit={handleSubmit} className="space-y-4">
  <div>
@@ -145,13 +146,18 @@ export default function SignupPage() {
  type="password"
  value={password}
  onChange={(e) => setPassword(e.target.value)}
- placeholder="At least 6 characters"
- minLength={6}
+ placeholder="At least 10 characters"
+ minLength={10}
  className="input-dark w-full pl-10 pr-4 py-3 text-sm"
  required
  />
  </div>
  </div>
+
+ <label className="flex items-start gap-3 text-xs" style={{ color: "var(--text-2)" }}>
+  <input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} required className="mt-0.5" />
+  <span>I agree to the <Link href="/terms" className="underline">Terms</Link> and acknowledge the <Link href="/privacy" className="underline">Privacy Policy</Link>.</span>
+ </label>
 
  <button
  type="submit"

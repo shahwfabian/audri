@@ -13,6 +13,10 @@ import {
 import type { Scholarship, SavedScholarship, ParsedScholarship } from "@/lib/types";
 import Link from "next/link";
 
+type MatchResponse = Pick<SavedScholarship, "matchScore" | "probabilityScore" | "roiScore"> & {
+ applicationChecklist?: string[];
+};
+
 export default function PasteScholarshipPage() {
  const { profile, apiKey, user, addScholarship } = useAppStore();
 
@@ -57,25 +61,23 @@ export default function PasteScholarshipPage() {
  const scholarship: Scholarship = {
  id: generateId("sc"),
  tags: [],
- name: (data as any).title ?? (data as any).name ?? "Scholarship",
- organization: (data as any).organization ?? "Unknown",
- amountText: (data as any).amountText ?? ((data as any).awardAmountMax ? `$${(data as any).awardAmountMax?.toLocaleString()}` : "Varies"),
- amount: (data as any).amount ?? (data as any).awardAmountMax ?? undefined,
- deadlineText: (data as any).deadlineText ?? (data as any).deadline ?? undefined,
- deadline: (data as any).deadline ?? undefined,
- description: (data as any).description ?? "",
- eligibility: (data as any).eligibility ?? (typeof (data as any).eligibility === "object" ? JSON.stringify((data as any).eligibility) : ""),
- eligibilityRules: undefined,
- prompts: Array.isArray((data as any).prompts) ? (data as any).prompts
- : Array.isArray((data as any).essayPrompts) ? (data as any).essayPrompts.map((p: any, i: number) => ({ id: `p${i}`, prompt: p.prompt, wordLimit: p.wordLimit ?? null, required: true }))
- : [],
- requirements: (data as any).requirements ?? {
+ name: data.name || "Scholarship",
+ organization: data.organization || "Unknown",
+ amountText: data.amountText || "Varies",
+ amount: data.amount,
+ deadlineText: data.deadlineText,
+ deadline: data.deadline,
+ description: data.description || "",
+ eligibility: data.eligibility || "",
+ eligibilityRules: data.eligibilityRules,
+ prompts: data.prompts || [],
+ requirements: data.requirements ?? {
  resumeRequired: false, transcriptRequired: false,
  recommendationLetters: 0, financialDocuments: false,
  portfolioRequired: false, interviewRequired: false, otherDocuments: [],
  },
- applicationUrl: (data as any).applicationUrl ?? undefined,
- categories: (data as any).categories ?? [],
+ applicationUrl: data.applicationUrl,
+ categories: data.categories ?? [],
  isNational: true,
  source: "PASTE",
  createdAt: new Date().toISOString(),
@@ -92,7 +94,7 @@ export default function PasteScholarshipPage() {
  headers: authHeaders,
  body: JSON.stringify({ profile, scholarship }),
  });
- const { data: scores } = await safeApiResponse<any>(scoreRes);
+ const { data: scores } = await safeApiResponse<MatchResponse>(scoreRes);
  if (scores) {
  const saved: SavedScholarship = {
  id: generateId("saved"),

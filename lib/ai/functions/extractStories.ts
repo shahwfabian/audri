@@ -2,7 +2,7 @@
 
 import { callAIJSON } from "@/lib/ai/client";
 import { SYSTEM_PROMPTS } from "@/lib/ai/prompts/system";
-import type { StudentProfile, Story, StoryCategory } from "@/lib/types";
+import type { StudentProfile, Story } from "@/lib/types";
 
 export async function extractStories(profile: StudentProfile): Promise<Story[]> {
   const achievementSummary = profile.achievements

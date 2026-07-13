@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { saveUserProfile, getUserProfile } from "@/lib/auth/users";
-import { verifySession, bearerFrom } from "@/lib/auth/crypto";
-import { readJsonBody, requestGuardResponse } from "@/lib/auth/guards";
+import { readJsonBody, requestGuardResponse, requireSession } from "@/lib/auth/guards";
 
 /**
  * Profile sync, STRICTLY per-user.
@@ -12,10 +11,8 @@ import { readJsonBody, requestGuardResponse } from "@/lib/auth/guards";
  */
 export async function POST(req: NextRequest) {
  try {
- const session = verifySession(bearerFrom(req.headers.get("authorization")));
- if (!session) {
- return NextResponse.json({ error: "Not authorized. Please sign in again." }, { status: 401 });
- }
+ const auth = await requireSession(req);
+ if (!auth.ok) return auth.response;
 
  const body = await readJsonBody<{ profile?: unknown }>(req, 500_000);
  const { profile } = body;
@@ -23,7 +20,7 @@ export async function POST(req: NextRequest) {
  return NextResponse.json({ error: "profile is required" }, { status: 400 });
  }
 
- const ok = saveUserProfile(session.email, profile);
+ const ok = await saveUserProfile(auth.session.email, profile);
  if (!ok) return NextResponse.json({ error: "Account not found." }, { status: 404 });
  return NextResponse.json({ ok: true });
  } catch (err) {
@@ -34,9 +31,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
- const session = verifySession(bearerFrom(req.headers.get("authorization")));
- if (!session) {
- return NextResponse.json({ error: "Not authorized." }, { status: 401 });
- }
- return NextResponse.json({ profile: getUserProfile(session.email) });
+ const auth = await requireSession(req);
+ if (!auth.ok) return auth.response;
+ return NextResponse.json({ profile: await getUserProfile(auth.session.email) });
 }

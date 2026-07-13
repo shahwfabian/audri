@@ -6,7 +6,6 @@ import { generateId } from "@/lib/utils";
 import { toast } from "sonner";
 import {
  User,
- GraduationCap,
  Trophy,
  Loader2,
  Sparkles,
@@ -115,6 +114,8 @@ export default function ProfilePage() {
  // re-seed every field so the page NEVER shows stale data.
  useEffect(() => {
  if (!editingBasic) {
+ // The form mirrors an external persisted store when editing is inactive.
+ // eslint-disable-next-line react-hooks/set-state-in-effect
  setName(profile?.fullName ?? "");
  setSchool(profile?.schoolName ?? "");
  setMajor(profile?.major ?? "");

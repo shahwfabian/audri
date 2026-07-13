@@ -2,7 +2,7 @@
 
 import { callAIJSON } from "@/lib/ai/client";
 import { SYSTEM_PROMPTS } from "@/lib/ai/prompts/system";
-import type { StudentProfile, Achievement, AchievementCategory } from "@/lib/types";
+import type { StudentProfile, Achievement } from "@/lib/types";
 
 interface ParsedResumeResult {
   profile: Partial<StudentProfile>;

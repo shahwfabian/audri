@@ -10,6 +10,7 @@ import {
  Loader2,
  Copy,
  CheckCircle2,
+ Printer,
 } from "lucide-react";
 import type { Resume, ResumeSection, ResumeType } from "@/lib/types";
 
@@ -206,11 +207,16 @@ export default function ResumePage() {
  toast.success("Resume copied as plain text!");
  }
 
+ function handlePrint() {
+  if (!resume) return;
+  window.print();
+ }
+
  const hasAchievements = (profile?.achievements.length ?? 0) > 0;
 
  return (
  <div className="max-w-5xl mx-auto space-y-6">
- <div>
+ <div className="no-print">
  <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Resume Builder</h1>
  <p className="text-sm mt-1" style={{ color: "var(--text-2)" }}>
  Generate a polished resume from your scholarship profile in seconds.
@@ -219,7 +225,7 @@ export default function ResumePage() {
 
  <div className="grid lg:grid-cols-3 gap-6">
  {/* Controls */}
- <div className="space-y-4">
+ <div className="space-y-4 no-print">
  {/* Resume type */}
  <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "1rem", padding: "1.25rem" }}>
  <h2 className="font-semibold text-sm mb-3" style={{ color: "var(--text)" }}>Resume Type</h2>
@@ -270,15 +276,21 @@ export default function ResumePage() {
  </button>
 
  {resume && (
+ <>
  <button onClick={handleCopy} className="btn-ghost w-full flex items-center justify-center gap-2 text-sm">
  <Copy className="w-4 h-4" />
  Copy as Plain Text
  </button>
+ <button onClick={handlePrint} className="btn-ghost w-full flex items-center justify-center gap-2 text-sm">
+ <Printer className="w-4 h-4" />
+ Print or Save PDF
+ </button>
+ </>
  )}
  </div>
 
  {/* Preview */}
- <div className="lg:col-span-2">
+ <div className="lg:col-span-2 resume-print">
  {resume ? (
  <div className="space-y-3">
  <div className="flex items-center justify-between">

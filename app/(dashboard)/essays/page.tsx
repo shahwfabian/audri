@@ -12,13 +12,11 @@ import {
   RotateCcw,
   CheckCircle2,
   AlertCircle,
-  ChevronDown,
-  ChevronUp,
   Save,
   Copy,
   BarChart3,
 } from "lucide-react";
-import type { EssayDraft, Story } from "@/lib/types";
+import type { EssayDraft } from "@/lib/types";
 
 function EssayCard({ draft, onEdit }: { draft: EssayDraft; onEdit: (draft: EssayDraft) => void }) {
   const wordCount = draft.content.trim().split(/\s+/).length;

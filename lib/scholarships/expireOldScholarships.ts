@@ -1,12 +1,10 @@
 // lib/scholarships/expireOldScholarships.ts
 
-import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { getAdminDatabase } from "@/lib/db/admin";
 
 export async function expireOldScholarships(): Promise<number> {
-  if (!isSupabaseConfigured()) return 0;
-
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
+ const supabase = getAdminDatabase();
+ if (!supabase) return 0;
 
   const today = new Date().toISOString().split("T")[0];
 

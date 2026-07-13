@@ -34,6 +34,20 @@ export function enforceHouseStyle(text: string): string {
   return stripDashes(text);
 }
 
+export function countWords(text: string): number {
+ return text.trim() ? text.trim().split(/\s+/).length : 0;
+}
+
+/** Hard safety net for application portals that reject text over their limit. */
+export function clampToWordLimit(text: string, limit?: number): string {
+ if (!limit || limit < 1 || countWords(text) <= limit) return text.trim();
+ const words = text.trim().split(/\s+/);
+ const candidate = words.slice(0, limit).join(" ");
+ const sentenceEnd = Math.max(candidate.lastIndexOf("."), candidate.lastIndexOf("!"), candidate.lastIndexOf("?"));
+ if (sentenceEnd > candidate.length * 0.7) return candidate.slice(0, sentenceEnd + 1).trim();
+ return candidate.replace(/[,;:]?$/, ".").trim();
+}
+
 /** Best-effort detector for the classic "a, b, and c" tricolon (for logging only). */
 export function hasSuspectedTricolon(text: string): boolean {
   return /\b[\w'’-]+,\s+[\w'’-]+,\s+(?:and|or)\s+[\w'’-]+/i.test(text);

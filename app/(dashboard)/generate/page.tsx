@@ -60,7 +60,7 @@ const LOADING_STAGES_URL = [
 ];
 
 export default function GeneratePage() {
- const { profile, apiKey, user, pendingStoryAngle, setPendingStoryAngle, addEssayDraft, addScholarship } = useAppStore();
+ const { profile, apiKey, user, pendingStoryAngle, setPendingStoryAngle, addEssayDraft } = useAppStore();
 
  const [pastedText, setPastedText] = useState("");
  const [scholarshipUrl, setScholarshipUrl] = useState("");
@@ -78,6 +78,8 @@ export default function GeneratePage() {
  // First visit? Point them at the manual before anything else.
  useEffect(() => {
  try {
+ // localStorage is an external browser system and must be read after mount.
+ // eslint-disable-next-line react-hooks/set-state-in-effect
  if (!localStorage.getItem("audri:manual-seen")) setShowManualNudge(true);
  } catch {}
  }, []);
@@ -86,6 +88,7 @@ export default function GeneratePage() {
  useEffect(() => {
  if (pendingStoryAngle) {
  // Idempotent: guard against React Strict-Mode double-invoke duplicating it.
+ // eslint-disable-next-line react-hooks/set-state-in-effect
  setExtraNotes((prev) =>
  prev.includes(pendingStoryAngle) ? prev : prev ? `${prev}\n\n${pendingStoryAngle}` : pendingStoryAngle
  );

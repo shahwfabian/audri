@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+        env:
+          AUDRI_SECRET: ci-only-secret-with-at-least-32-characters
+          ANTHROPIC_API_KEY: ci-placeholder-key
+          AI_MODEL: ci-placeholder-model
+          AI_MODEL_FAST: ci-placeholder-model
+          DISABLE_SCRAPE_SCHEDULER: "true"

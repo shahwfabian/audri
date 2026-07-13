@@ -7,7 +7,7 @@ type ExtractStoriesBody = { profile?: Parameters<typeof extractStories>[0] };
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = guardAIRequest(req, "extract-stories");
+    const auth = await guardAIRequest(req, "extract-stories");
     if (!auth.ok) return auth.response;
     const body = await readJsonBody<ExtractStoriesBody>(req, 400_000);
     if (!body.profile) {

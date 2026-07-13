@@ -10,7 +10,7 @@ type MatchBody = {
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = guardAIRequest(req, "calculate-match");
+    const auth = await guardAIRequest(req, "calculate-match");
     if (!auth.ok) return auth.response;
     const body = await readJsonBody<MatchBody>(req, 400_000);
     if (!body.profile || !body.scholarship) {

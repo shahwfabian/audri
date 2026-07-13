@@ -14,17 +14,14 @@ import type {
 interface AppState {
  // API configuration
  apiKey: string | null;
- supabaseUrl: string | null;
- supabaseAnonKey: string | null;
  setApiKey: (key: string) => void;
- setSupabaseConfig: (url: string, anonKey: string) => void;
 
  // Auth
  user: User | null;
  isLoggedIn: boolean;
  setUser: (user: User | null) => void;
  /** Sign in as a (possibly different) account: clears the previous user's data and adopts the server profile. */
- signIn: (user: User, serverProfile: StudentProfile | null) => void;
+ signIn: (user: User, serverProfile: StudentProfile | null, serverWorkspace?: ServerWorkspace | null) => void;
  login: (email: string, name: string) => void;
  logout: () => void;
 
@@ -73,12 +70,48 @@ interface AppState {
  setHasHydrated: (v: boolean) => void;
 }
 
+interface ServerWorkspace {
+ onboardingComplete?: boolean;
+ onboardingStep?: number;
+ savedScholarships?: SavedScholarship[];
+ essayDrafts?: EssayDraft[];
+ gapAnalysis?: GapAnalysis | null;
+ dailyGoal?: { date: string; target: number; completed: number } | null;
+ streak?: { count: number; lastActiveDate: string };
+}
+
+let workspaceTimer: ReturnType<typeof setTimeout> | null = null;
+
+function syncWorkspaceToServer(state: AppState) {
+ if (typeof window === "undefined" || !state.user) return;
+ if (workspaceTimer) clearTimeout(workspaceTimer);
+ workspaceTimer = setTimeout(() => {
+  const workspace: ServerWorkspace = {
+   onboardingComplete: state.onboardingComplete,
+   onboardingStep: state.onboardingStep,
+   savedScholarships: state.savedScholarships,
+   essayDrafts: state.essayDrafts,
+   gapAnalysis: state.gapAnalysis,
+   dailyGoal: state.dailyGoal,
+   streak: state.streak,
+  };
+  fetch("/api/auth/workspace", {
+   method: "POST",
+   headers: {
+    "Content-Type": "application/json",
+    ...(state.user?.token ? { Authorization: "Bearer " + state.user.token } : {}),
+   },
+   body: JSON.stringify({ workspace }),
+  }).catch(() => {});
+ }, 500);
+}
+
 /** Fire-and-forget: persist the profile onto the server account (encrypted at rest, token-authenticated). */
-function syncProfileToServer(token: string | undefined, profile: StudentProfile | null) {
- if (!token || !profile || typeof window === "undefined") return;
+function syncProfileToServer(token: string | undefined, profile: StudentProfile | null, signedIn: boolean) {
+ if (!signedIn || !profile || typeof window === "undefined") return;
  fetch("/api/auth/profile", {
  method: "POST",
- headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+ headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
  body: JSON.stringify({ profile }),
  }).catch(() => {});
 }
@@ -88,15 +121,12 @@ export const useAppStore = create<AppState>()(
  (set, get) => ({
  // API configuration
  apiKey: null,
- supabaseUrl: null,
- supabaseAnonKey: null,
  setApiKey: (key) => set({ apiKey: key }),
- setSupabaseConfig: (url, anonKey) => set({ supabaseUrl: url, supabaseAnonKey: anonKey }),
 
  user: null,
  isLoggedIn: false,
  setUser: (user) => set({ user, isLoggedIn: !!user }),
- signIn: (user, serverProfile) => {
+ signIn: (user, serverProfile, serverWorkspace) => {
  const previous = get().user;
  const sameAccount = previous?.email?.toLowerCase() === user.email.toLowerCase();
  set({
@@ -104,15 +134,25 @@ export const useAppStore = create<AppState>()(
  isLoggedIn: true,
  // A different account must never inherit the previous student's data
  profile: serverProfile ?? (sameAccount ? get().profile : null),
- ...(sameAccount
- ? {}
+  ...(serverWorkspace
+  ? {
+  onboardingComplete: serverWorkspace.onboardingComplete ?? !!serverProfile,
+  onboardingStep: serverWorkspace.onboardingStep ?? 0,
+  savedScholarships: serverWorkspace.savedScholarships ?? [],
+  essayDrafts: serverWorkspace.essayDrafts ?? [],
+  gapAnalysis: serverWorkspace.gapAnalysis ?? null,
+  dailyGoal: serverWorkspace.dailyGoal ?? null,
+  streak: serverWorkspace.streak ?? { count: 0, lastActiveDate: "" },
+  }
+  : sameAccount
+  ? {}
  : {
  savedScholarships: [],
  essayDrafts: [],
  gapAnalysis: null,
  onboardingComplete: !!serverProfile,
  onboardingStep: 0,
- }),
+  }),
  });
  },
  login: (email, name) => {
@@ -125,7 +165,8 @@ export const useAppStore = create<AppState>()(
  };
  set({ user, isLoggedIn: true });
  },
- logout: () =>
+ logout: () => {
+ if (typeof window !== "undefined") fetch("/api/auth/session", { method: "DELETE" }).catch(() => {});
  set({
  user: null,
  isLoggedIn: false,
@@ -135,14 +176,15 @@ export const useAppStore = create<AppState>()(
  savedScholarships: [],
  essayDrafts: [],
  gapAnalysis: null,
- }),
+ });
+ },
 
  profile: null,
  setProfile: (profile) => {
  // Enforce honest strength no matter how the profile was built
  const next = profile ? { ...profile, profileStrength: computeProfileStrength(profile) } : profile;
  set({ profile: next });
- syncProfileToServer(get().user?.token, next);
+ syncProfileToServer(get().user?.token, next, Boolean(get().user));
  },
  updateProfile: (updates) => {
  const current = get().profile;
@@ -178,40 +220,59 @@ export const useAppStore = create<AppState>()(
  // Always keep strength honest and in sync with the actual profile contents
  const next = { ...merged, profileStrength: computeProfileStrength(merged) };
  set({ profile: next });
- syncProfileToServer(user?.token, next);
+ syncProfileToServer(user?.token, next, Boolean(user));
  },
 
  onboardingComplete: false,
  onboardingStep: 0,
- setOnboardingStep: (step) => set({ onboardingStep: step }),
- completeOnboarding: () => set({ onboardingComplete: true }),
+ setOnboardingStep: (step) => {
+  set({ onboardingStep: step });
+  syncWorkspaceToServer(get());
+ },
+ completeOnboarding: () => {
+  set({ onboardingComplete: true });
+  syncWorkspaceToServer(get());
+ },
 
  savedScholarships: [],
- addScholarship: (scholarship) =>
- set((s) => ({ savedScholarships: [...s.savedScholarships, scholarship] })),
- updateScholarship: (id, updates) =>
+ addScholarship: (scholarship) => {
+  set((s) => ({ savedScholarships: [...s.savedScholarships, scholarship] }));
+  syncWorkspaceToServer(get());
+ },
+ updateScholarship: (id, updates) => {
  set((s) => ({
  savedScholarships: s.savedScholarships.map((sc) =>
  sc.id === id ? { ...sc, ...updates } : sc
  ),
- })),
- removeScholarship: (id) =>
+ }));
+  syncWorkspaceToServer(get());
+ },
+ removeScholarship: (id) => {
  set((s) => ({
  savedScholarships: s.savedScholarships.filter((sc) => sc.id !== id),
- })),
+ }));
+  syncWorkspaceToServer(get());
+ },
 
  essayDrafts: [],
- addEssayDraft: (draft) =>
- set((s) => ({ essayDrafts: [...s.essayDrafts, draft] })),
- updateEssayDraft: (id, updates) =>
+ addEssayDraft: (draft) => {
+  set((s) => ({ essayDrafts: [...s.essayDrafts, draft] }));
+  syncWorkspaceToServer(get());
+ },
+ updateEssayDraft: (id, updates) => {
  set((s) => ({
  essayDrafts: s.essayDrafts.map((d) =>
  d.id === id ? { ...d, ...updates } : d
  ),
- })),
+ }));
+  syncWorkspaceToServer(get());
+ },
 
  gapAnalysis: null,
- setGapAnalysis: (analysis) => set({ gapAnalysis: analysis }),
+ setGapAnalysis: (analysis) => {
+  set({ gapAnalysis: analysis });
+  syncWorkspaceToServer(get());
+ },
 
  dailyGoal: null,
  streak: { count: 0, lastActiveDate: "" },
@@ -224,6 +285,7 @@ export const useAppStore = create<AppState>()(
  ? { ...existing, target }
  : { date: today, target, completed: 0 },
  });
+ syncWorkspaceToServer(get());
  },
  logApplicationFinished: () => {
  const today = new Date().toISOString().slice(0, 10);
@@ -245,6 +307,7 @@ export const useAppStore = create<AppState>()(
  }
 
  set({ dailyGoal: updatedGoal, streak: updatedStreak });
+ syncWorkspaceToServer(get());
  },
 
  pendingStoryAngle: null,
@@ -260,11 +323,17 @@ export const useAppStore = create<AppState>()(
  name: "audri-store",
  onRehydrateStorage: () => (state) => {
  state?.setHasHydrated(true);
+ const token = state?.user?.token;
+ if (token && typeof window !== "undefined") {
+  fetch("/api/auth/session", { method: "POST", headers: { Authorization: "Bearer " + token } })
+   .then((response) => {
+    if (response.ok && state.user) state.setUser({ ...state.user, token: undefined });
+   })
+   .catch(() => {});
+ }
  },
  partialize: (s) => ({
- apiKey: s.apiKey,
- supabaseUrl: s.supabaseUrl,
- supabaseAnonKey: s.supabaseAnonKey,
+ apiKey: null,
  user: s.user,
  isLoggedIn: s.isLoggedIn,
  profile: s.profile,

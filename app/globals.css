@@ -152,6 +152,15 @@ body {
 }
 .input-dark::placeholder { color: var(--text-3); }
 
+@media print {
+ body { background: white !important; }
+ .no-print, aside, nav { display: none !important; }
+ .resume-print { width: 100% !important; max-width: none !important; }
+ .resume-print > div > div:first-child,
+ .resume-print p { display: none !important; }
+ .resume-print [style] { box-shadow: none !important; }
+}
+
 /* ── Button gold ────────────────────────────────────────────────────────── */
 
 .btn-gold {

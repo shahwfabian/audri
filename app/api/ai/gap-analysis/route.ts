@@ -7,7 +7,7 @@ type GapAnalysisBody = { profile?: Parameters<typeof runGapAnalysis>[0] };
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = guardAIRequest(req, "gap-analysis");
+    const auth = await guardAIRequest(req, "gap-analysis");
     if (!auth.ok) return auth.response;
     const body = await readJsonBody<GapAnalysisBody>(req, 400_000);
     if (!body.profile) {

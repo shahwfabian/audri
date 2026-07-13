@@ -5,7 +5,7 @@ import { guardAIRequest, readJsonBody, requestGuardResponse } from "@/lib/auth/g
 
 export async function POST(req: NextRequest) {
  try {
- const auth = guardAIRequest(req, "parse-scholarship");
+ const auth = await guardAIRequest(req, "parse-scholarship");
  if (!auth.ok) return auth.response;
  const body = await readJsonBody<{ text?: string }>(req, 300_000);
  const { text } = body;

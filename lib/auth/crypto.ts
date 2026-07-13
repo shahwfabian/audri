@@ -22,6 +22,9 @@ const SECRET_FILE = path.join(process.cwd(), "data", ".secret");
 function loadMasterSecret(): string {
  const fromEnv = process.env.AUDRI_SECRET;
  if (fromEnv && fromEnv !== "your_audri_secret_here" && fromEnv.length >= 16) return fromEnv;
+ if (process.env.NODE_ENV === "production") {
+  throw new Error("AUDRI_SECRET must be set to a stable value in production.");
+ }
 
  try {
  if (fs.existsSync(SECRET_FILE)) return fs.readFileSync(SECRET_FILE, "utf-8").trim();
@@ -77,11 +80,12 @@ function sign(payload: string): string {
 export interface Session {
  userId: string;
  email: string;
+ sessionVersion: number;
 }
 
 /** Issue a session token that binds this userId + email for 30 days. */
-export function issueSession(userId: string, email: string): string {
- const claims = { u: userId, e: email.toLowerCase(), x: Date.now() + SESSION_TTL_MS };
+export function issueSession(userId: string, email: string, sessionVersion = 1): string {
+ const claims = { u: userId, e: email.toLowerCase(), v: sessionVersion, x: Date.now() + SESSION_TTL_MS };
  // JSON-encode so values containing dots (emails!) survive round-tripping.
  const b64 = Buffer.from(JSON.stringify(claims), "utf-8").toString("base64url");
  return `${b64}.${sign(b64)}`;
@@ -100,9 +104,9 @@ export function verifySession(token: string | undefined | null): Session | null 
  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
 
  try {
- const claims = JSON.parse(Buffer.from(b64, "base64url").toString("utf-8")) as { u: string; e: string; x: number };
+ const claims = JSON.parse(Buffer.from(b64, "base64url").toString("utf-8")) as { u: string; e: string; v?: number; x: number };
  if (!claims.u || !claims.e || typeof claims.x !== "number" || Date.now() > claims.x) return null;
- return { userId: claims.u, email: claims.e };
+ return { userId: claims.u, email: claims.e, sessionVersion: claims.v ?? 1 };
  } catch {
  return null;
  }

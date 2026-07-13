@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { guardAIRequest, readJsonBody, requestGuardResponse } from "@/lib/auth/guards";
 
 export async function POST(req: NextRequest) {
- const auth = guardAIRequest(req, "test-key", 6);
+ const auth = await guardAIRequest(req, "test-key", 6);
  if (!auth.ok) return auth.response;
  try {
  await readJsonBody(req, 4_096);

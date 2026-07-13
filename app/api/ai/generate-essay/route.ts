@@ -14,7 +14,7 @@ type GenerateEssayBody = Partial<GenerationInput> & {
 export async function POST(req: NextRequest) {
  let reservedFor: string | null = null;
  try {
- const auth = guardAIRequest(req, "generate-essay", 12);
+ const auth = await guardAIRequest(req, "generate-essay", 12);
  if (!auth.ok) return auth.response;
  const body = await readJsonBody<GenerateEssayBody>(req, 500_000);
  const apiKey = req.headers.get("x-audri-api-key") ?? undefined;
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
  if (!essay || !revisionInstructions) {
  return NextResponse.json({ error: "Missing essay or instructions." }, { status: 400 });
  }
- const reservation = reserveEssay(userEmail);
+ const reservation = await reserveEssay(userEmail);
  if (!reservation.allowed) {
  return NextResponse.json(
  { error: `You've used all ${FREE_ESSAY_LIMIT} free essays. Upgrade to Audri Pro for unlimited essays.`, paywall: true, remaining: 0 },
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
  return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
  }
 
- const reservation = reserveEssay(userEmail);
+ const reservation = await reserveEssay(userEmail);
  if (!reservation.allowed) {
  return NextResponse.json(
  { error: `You've used all ${FREE_ESSAY_LIMIT} free essays. Upgrade to Audri Pro for unlimited essays.`, paywall: true, remaining: 0 },
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
  quota: reservation.user ? { plan: reservation.user.plan, remaining: reservation.user.essaysRemaining } : undefined,
  });
  } catch (err) {
- if (reservedFor) releaseEssayReservation(reservedFor);
+ if (reservedFor) await releaseEssayReservation(reservedFor);
  const guarded = requestGuardResponse(err);
  if (guarded) return guarded;
  return NextResponse.json({ error: friendlyError(err) }, { status: 500 });

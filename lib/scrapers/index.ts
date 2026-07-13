@@ -19,22 +19,25 @@ import type { ScrapedScholarship, ScholarshipDatabase } from "./types";
 const DB_PATH = path.join(process.cwd(), "data", "scholarships.json");
 
 /** Always-on layers: local/state programs + national platform awards. */
-const BUILT_IN = [...LOCAL_SCHOLARSHIPS, ...PLATFORM_SCHOLARSHIPS];
+export const BUILT_IN_SCHOLARSHIPS = [...LOCAL_SCHOLARSHIPS, ...PLATFORM_SCHOLARSHIPS];
 
 export function readScholarshipDB(): ScholarshipDatabase {
  let stored: ScrapedScholarship[] = [];
+ let storedUpdatedAt: string | null = null;
  if (fs.existsSync(DB_PATH)) {
  try {
- stored = (JSON.parse(fs.readFileSync(DB_PATH, "utf-8")) as ScholarshipDatabase).scholarships ?? [];
+ const database = JSON.parse(fs.readFileSync(DB_PATH, "utf-8")) as ScholarshipDatabase;
+ stored = database.scholarships ?? [];
+ storedUpdatedAt = database.lastUpdated ?? null;
  } catch {
  stored = [];
  }
  }
  // Merge the built-in layers on every read so all 50 states are always covered
  const storedIds = new Set(stored.map((s) => s.id));
- const merged = [...stored, ...BUILT_IN.filter((s) => !storedIds.has(s.id))];
+ const merged = [...stored, ...BUILT_IN_SCHOLARSHIPS.filter((s) => !storedIds.has(s.id))];
  return {
- lastUpdated: new Date().toISOString(),
+ lastUpdated: storedUpdatedAt ?? "1970-01-01T00:00:00.000Z",
  totalCount: merged.length,
  scholarships: merged,
  };

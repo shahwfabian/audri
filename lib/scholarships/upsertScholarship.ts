@@ -2,7 +2,7 @@
 
 import { normalizeScholarshipKey } from "./normalizeScholarship";
 import type { Scholarship, ScholarshipRow } from "./types";
-import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { getAdminDatabase } from "@/lib/db/admin";
 
 export async function upsertScholarship(
   scholarship: Scholarship
@@ -12,7 +12,8 @@ export async function upsertScholarship(
     scholarship.organization
   );
 
-  if (!isSupabaseConfigured()) {
+  const supabase = getAdminDatabase();
+  if (!supabase) {
     // Fallback: return an in-memory record when DB not configured
     return {
       ...scholarship,
@@ -23,9 +24,6 @@ export async function upsertScholarship(
       updated_at: new Date().toISOString(),
     } as ScholarshipRow;
   }
-
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("scholarships")

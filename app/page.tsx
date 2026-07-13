@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, BookOpen, Zap, BarChart3, FileText, Sparkles, Trophy, Search, Clock, Brain, Shield } from "lucide-react";
+import { ArrowRight, BookOpen, Zap, BarChart3, FileText, Sparkles, Search, Clock, Brain, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAppStore } from "@/lib/store";
 
@@ -313,9 +313,8 @@ export default function LandingPage() {
  </div>
  <h2 className="text-2xl font-bold mb-4" style={{ color: "var(--text)" }}>Your real story. Told powerfully.</h2>
  <p className="leading-relaxed" style={{ color: "var(--text-2)" }}>
- Audri never fabricates experiences, identities, hardships, or achievements. Our AI helps you
- surface, structure, and articulate your actual life, with the depth and specificity that scholarship
- committees respect. Every student has a story worth telling. We help you tell it better.
+ Audri is designed to use the experiences and achievements you provide. Its AI helps you shape
+ that material into a focused draft. You remain responsible for checking every fact before submission.
  </p>
  </div>
  </section>
@@ -332,7 +331,7 @@ export default function LandingPage() {
  <Link href="/signup" className="btn-gold inline-flex items-center gap-2 px-12 py-4 text-base" style={{ borderRadius: "var(--radius-lg)" }}>
  Start building your profile <ArrowRight className="w-5 h-5" />
  </Link>
- <p className="text-sm mt-4" style={{ color: "var(--text-3)" }}>No credit card. No commitment. Start in 2 minutes.</p>
+ <p className="text-sm mt-4" style={{ color: "var(--text-3)" }}>No credit card required for the free plan.</p>
  </section>
 
  {/* Footer */}
@@ -347,10 +346,9 @@ export default function LandingPage() {
  <p className="text-xs" style={{ color: "var(--text-3)" }}>
  &copy; {new Date().getFullYear()} Audri. Built for students who expect to win.
  </p>
- <div className="flex items-center gap-1">
- {[...Array(5)].map((_, i) => (
- <div key={i} className="w-1 h-1 rounded-full" style={{ background: "var(--gold-dark)" }} />
- ))}
+ <div className="flex items-center gap-4 text-xs" style={{ color: "var(--text-3)" }}>
+  <Link href="/privacy" className="hover:underline">Privacy</Link>
+  <Link href="/terms" className="hover:underline">Terms</Link>
  </div>
  </div>
  </footer>

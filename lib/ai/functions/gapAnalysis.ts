@@ -2,7 +2,7 @@
 
 import { callAIJSON } from "@/lib/ai/client";
 import { SYSTEM_PROMPTS } from "@/lib/ai/prompts/system";
-import type { StudentProfile, GapAnalysis, ProfileGap } from "@/lib/types";
+import type { StudentProfile, GapAnalysis } from "@/lib/types";
 
 export async function runGapAnalysis(profile: StudentProfile): Promise<GapAnalysis> {
   const achievementCategories = profile.achievements.map((a) => a.category);

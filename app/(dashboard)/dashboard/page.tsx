@@ -37,6 +37,7 @@ const STATUS_STYLE: Record<ApplicationStatus, { bg: string; color: string; borde
  REJECTED: { bg: "rgba(229,80,80,0.12)", color: "var(--red)", border: "rgba(229,80,80,0.3)", label: "Rejected" },
  ARCHIVED: { bg: "rgba(255,255,255,0.02)", color: "var(--text-3)", border: "var(--border)", label: "Archived" },
 };
+const STATUS_OPTIONS = Object.keys(STATUS_STYLE) as ApplicationStatus[];
 
 // ---- DAILY CHECKLIST LOGIC ----
 interface DailyItem { id: string; text: string; done: boolean; }
@@ -73,7 +74,7 @@ function saveDailyState(state: DailyState) {
 }
 
 export default function DashboardPage() {
- const { user, profile, savedScholarships, onboardingComplete } = useAppStore();
+ const { user, profile, savedScholarships, onboardingComplete, updateScholarship } = useAppStore();
 
  // ---- stats ----
  const totalDiscovered = savedScholarships.reduce((sum, s) => sum + (s.scholarship.amount ?? 0), 0);
@@ -98,6 +99,8 @@ export default function DashboardPage() {
  const newItemRef = useRef<HTMLInputElement>(null);
 
  useEffect(() => {
+ // localStorage is an external browser system and must be read after mount.
+ // eslint-disable-next-line react-hooks/set-state-in-effect
  setDaily(loadDailyState());
  }, []);
 
@@ -163,7 +166,7 @@ export default function DashboardPage() {
  <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>
  Welcome back, {user?.name?.split(" ")[0]}
  </h1>
- <p className="text-sm mt-1" style={{ color: "var(--text-2)" }}>Your scholarship command center, let's get to work.</p>
+ <p className="text-sm mt-1" style={{ color: "var(--text-2)" }}>Your scholarship command center, let&apos;s get to work.</p>
  </div>
 
  {/* Onboarding banner */}
@@ -193,7 +196,7 @@ export default function DashboardPage() {
  <span className="font-semibold text-sm" style={{ color: "var(--red)" }}>
  {deadlinesThisWeek} scholarship{deadlinesThisWeek > 1 ? "s" : ""} due this week
  </span>
- <span className="text-sm ml-2" style={{ color: "var(--text-2)" }}>, don't let them expire.</span>
+ <span className="text-sm ml-2" style={{ color: "var(--text-2)" }}>, don&apos;t let them expire.</span>
  </div>
  <Link href="/scholarships/search" className="text-xs font-medium shrink-0 badge-red">
  View deadlines
@@ -307,6 +310,14 @@ export default function DashboardPage() {
  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
  {s.label}
  </span>
+ <select
+ value={saved.status}
+ onChange={(event) => updateScholarship(saved.id, { status: event.target.value as ApplicationStatus, updatedAt: new Date().toISOString() })}
+ className="input-dark text-xs px-2 py-1"
+ aria-label={"Update status for " + saved.scholarship.name}
+ >
+ {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{STATUS_STYLE[status].label}</option>)}
+ </select>
  {saved.matchScore && (
  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(255, 255, 255,0.10)", color: "var(--gold)", border: "1px solid rgba(255, 255, 255,0.2)" }}>
  {saved.matchScore.total}% match
@@ -409,7 +420,7 @@ export default function DashboardPage() {
  <Target className="w-4 h-4" style={{ color: "var(--gold)" }} />
  </div>
  <div>
- <h2 className="font-bold text-sm" style={{ color: "var(--text)" }}>Today's Application Goal</h2>
+ <h2 className="font-bold text-sm" style={{ color: "var(--text)" }}>Today&apos;s Application Goal</h2>
  <p className="text-xs" style={{ color: "var(--text-3)" }}>
  {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
  </p>

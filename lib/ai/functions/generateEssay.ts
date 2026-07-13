@@ -2,7 +2,7 @@
 
 import { callAI, callAIJSON } from "@/lib/ai/client";
 import { SYSTEM_PROMPTS } from "@/lib/ai/prompts/system";
-import { enforceHouseStyle } from "@/lib/ai/style";
+import { clampToWordLimit, countWords, enforceHouseStyle } from "@/lib/ai/style";
 import type { StudentProfile, Story, EssayScores, EssayFeedback } from "@/lib/types";
 
 interface EssayGenerationInput {
@@ -180,7 +180,15 @@ Output ONLY the essay text — no title, no labels, no preamble.`;
     maxTokens: 3000,
     apiKey: input.apiKey,
   });
-  return enforceHouseStyle(draft);
+  let polished = enforceHouseStyle(draft);
+  if (countWords(polished) > target) {
+    polished = enforceHouseStyle(await callAI(
+      "Shorten the essay below to no more than " + target + " words. Preserve every factual detail. Keep the student's voice. Output only the revised essay.\n\n" + polished,
+      SYSTEM_PROMPTS.ESSAY_WRITER,
+      { maxTokens: 3000, apiKey: input.apiKey }
+    ));
+  }
+  return clampToWordLimit(polished, target);
 }
 
 interface EssayCritiqueResult {
@@ -258,5 +266,5 @@ HOUSE STYLE (ABSOLUTE): zero em dashes, zero three-item lists / tricolons.
 Output only the revised essay text. No title, no labels, no explanation.`;
 
   const revised = await callAI(prompt, SYSTEM_PROMPTS.ESSAY_WRITER, { maxTokens: 3000, apiKey });
-  return enforceHouseStyle(revised);
+  return clampToWordLimit(enforceHouseStyle(revised), wordLimit);
 }
