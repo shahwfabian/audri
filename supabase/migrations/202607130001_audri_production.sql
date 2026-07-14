@@ -24,6 +24,7 @@ create table if not exists public.audri_users (
 
 alter table public.audri_users enable row level security;
 revoke all on public.audri_users from anon, authenticated;
+grant select, insert, update, delete on table public.audri_users to service_role;
 
 create or replace function public.reserve_audri_essay(p_email text, p_limit integer)
 returns setof public.audri_users
@@ -90,6 +91,7 @@ create table if not exists public.audri_rate_limits (
 
 alter table public.audri_rate_limits enable row level security;
 revoke all on public.audri_rate_limits from anon, authenticated;
+grant select, insert, update, delete on table public.audri_rate_limits to service_role;
 
 create or replace function public.check_audri_rate_limit(p_key text, p_limit integer, p_window_seconds integer)
 returns table(allowed boolean, retry_after integer)
@@ -138,5 +140,6 @@ create table if not exists public.scholarships (
 
 alter table public.scholarships enable row level security;
 revoke all on public.scholarships from anon, authenticated;
+grant select, insert, update, delete on table public.scholarships to service_role;
 create index if not exists scholarships_status_deadline_idx on public.scholarships(status, deadline);
 create index if not exists scholarships_updated_idx on public.scholarships(updated_at desc);

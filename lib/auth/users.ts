@@ -6,6 +6,8 @@ import { assertProductionDatabase, getAdminDatabase } from "@/lib/db/admin";
 
 const USERS_FILE = process.env.AUDRI_USERS_FILE ? path.basename(process.env.AUDRI_USERS_FILE) : "users.json";
 const USERS_PATH = path.join(process.cwd(), "data", USERS_FILE);
+const TERMS_VERSION = "2026-07-13";
+const PENDING_SIGNUP_TTL_MS = 30 * 60_000;
 
 export const FREE_ESSAY_LIMIT = Math.max(1, parseInt(process.env.AUDRI_FREE_ESSAYS ?? "3", 10) || 3);
 
@@ -28,6 +30,7 @@ export interface StoredUser {
  termsVersion: string;
  passwordResetDigest?: string;
  passwordResetExpiresAt?: string;
+ emailVerifiedAt?: string;
 }
 
 export interface PublicUser {
@@ -60,6 +63,16 @@ type DatabaseRow = {
  terms_version?: string | null;
  password_reset_digest?: string | null;
  password_reset_expires_at?: string | null;
+ email_verified_at?: string | null;
+};
+
+type PendingSignupRow = {
+ email: string;
+ name: string;
+ password_hash: string;
+ terms_accepted_at: string;
+ terms_version: string;
+ expires_at: string;
 };
 
 const normalize = (email: string) => email.trim().toLowerCase();
@@ -85,6 +98,7 @@ function fromDatabase(row: DatabaseRow): StoredUser {
   termsVersion: row.terms_version ?? "2026-07-13",
   passwordResetDigest: row.password_reset_digest ?? undefined,
   passwordResetExpiresAt: row.password_reset_expires_at ?? undefined,
+  emailVerifiedAt: row.email_verified_at ?? undefined,
  };
 }
 
@@ -148,6 +162,15 @@ function verifyPassword(password: string, stored: string): boolean {
  return candidate.length === expected.length && timingSafeEqual(candidate, expected);
 }
 
+function validateAccountInput(email: string, name: string, password: string, acceptedTerms: boolean): string | null {
+ const normalizedEmail = normalize(email);
+ if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) return "That doesn't look like a valid email address.";
+ if (!name.trim()) return "Please enter your name.";
+ if (password.length < 10) return "Use at least 10 characters for your password.";
+ if (!acceptedTerms) return "Accept the Terms and Privacy Policy to create an account.";
+ return null;
+}
+
 export function toPublic(user: StoredUser, withToken = false): PublicUser {
  return {
   id: user.id,
@@ -175,10 +198,10 @@ export async function findUser(email: string): Promise<StoredUser | undefined> {
 
 export async function createUser(email: string, name: string, password: string, acceptedTerms = false): Promise<{ user?: PublicUser; error?: string }> {
  const normalizedEmail = normalize(email);
- if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) return { error: "That doesn't look like a valid email address." };
- if (!name.trim()) return { error: "Please enter your name." };
- if (password.length < 10) return { error: "Use at least 10 characters for your password." };
- if (!acceptedTerms) return { error: "Accept the Terms and Privacy Policy to create an account." };
+ const validationError = validateAccountInput(email, name, password, acceptedTerms);
+ if (validationError) return { error: validationError };
+
+ const now = new Date().toISOString();
 
  const created: StoredUser = {
   id: `user_${Date.now()}_${randomBytes(8).toString("hex")}`,
@@ -188,9 +211,10 @@ export async function createUser(email: string, name: string, password: string, 
   plan: "free",
   essaysGenerated: 0,
   sessionVersion: 1,
-  termsAcceptedAt: new Date().toISOString(),
-  termsVersion: "2026-07-13",
-  createdAt: new Date().toISOString(),
+  termsAcceptedAt: now,
+  termsVersion: TERMS_VERSION,
+  createdAt: now,
+  emailVerifiedAt: now,
  };
 
  const database = getAdminDatabase();
@@ -206,6 +230,7 @@ export async function createUser(email: string, name: string, password: string, 
    terms_accepted_at: created.termsAcceptedAt,
    terms_version: created.termsVersion,
    created_at: created.createdAt,
+   email_verified_at: created.emailVerifiedAt,
   }).select("*").single();
   if (error?.code === "23505") return { error: "An account with this email already exists. Sign in instead." };
   if (error || !data) throw new Error(`Could not create customer account: ${error?.message ?? "No row returned"}`);
@@ -222,9 +247,105 @@ export async function createUser(email: string, name: string, password: string, 
  });
 }
 
+export async function stagePendingSignup(
+ email: string,
+ name: string,
+ password: string,
+ acceptedTerms = false
+): Promise<{ email?: string; error?: string }> {
+ const validationError = validateAccountInput(email, name, password, acceptedTerms);
+ if (validationError) return { error: validationError };
+
+ const normalizedEmail = normalize(email);
+ if (await findUser(normalizedEmail)) {
+  return { error: "An account with this email already exists. Sign in instead." };
+ }
+
+ const database = getAdminDatabase();
+ if (!database) {
+  assertProductionDatabase();
+  return { error: "Email verification is unavailable." };
+ }
+
+ const now = new Date();
+ const { error } = await database.from("audri_pending_signups").upsert({
+  email: normalizedEmail,
+  name: name.trim(),
+  password_hash: hashPassword(password),
+  terms_accepted_at: now.toISOString(),
+  terms_version: TERMS_VERSION,
+  expires_at: new Date(now.getTime() + PENDING_SIGNUP_TTL_MS).toISOString(),
+  updated_at: now.toISOString(),
+ }, { onConflict: "email" });
+ if (error) throw new Error(`Could not stage customer account: ${error.message}`);
+ return { email: normalizedEmail };
+}
+
+export async function hasPendingSignup(email: string): Promise<boolean> {
+ const database = getAdminDatabase();
+ if (!database) return false;
+ const { data, error } = await database.from("audri_pending_signups")
+  .select("email, expires_at")
+  .eq("email", normalize(email))
+  .gt("expires_at", new Date().toISOString())
+  .maybeSingle();
+ if (error) throw new Error(`Could not read pending signup: ${error.message}`);
+ return Boolean(data);
+}
+
+export async function completePendingSignup(email: string): Promise<{ user?: PublicUser; error?: string }> {
+ const database = getAdminDatabase();
+ if (!database) {
+  assertProductionDatabase();
+  return { error: "Email verification is unavailable." };
+ }
+
+ const normalizedEmail = normalize(email);
+ const { data, error } = await database.from("audri_pending_signups")
+  .select("*")
+  .eq("email", normalizedEmail)
+  .maybeSingle();
+ if (error) throw new Error(`Could not read pending signup: ${error.message}`);
+ const pending = data as PendingSignupRow | null;
+ if (!pending || pending.expires_at <= new Date().toISOString()) {
+  return { error: "Your signup expired. Start again to receive a new code." };
+ }
+
+ const verifiedAt = new Date().toISOString();
+ const createdAt = pending.terms_accepted_at;
+ const { data: inserted, error: insertError } = await database.from("audri_users").insert({
+  id: `user_${Date.now()}_${randomBytes(8).toString("hex")}`,
+  email: pending.email,
+  name: pending.name,
+  password_hash: pending.password_hash,
+  plan: "free",
+  essays_generated: 0,
+  session_version: 1,
+  terms_accepted_at: pending.terms_accepted_at,
+  terms_version: pending.terms_version,
+  email_verified_at: verifiedAt,
+  created_at: createdAt,
+ }).select("*").single();
+
+ let user: StoredUser | undefined;
+ if (insertError?.code === "23505") {
+  user = await findUser(normalizedEmail);
+ } else if (insertError || !inserted) {
+  throw new Error(`Could not complete customer account: ${insertError?.message ?? "No row returned"}`);
+ } else {
+  user = fromDatabase(inserted as DatabaseRow);
+ }
+
+ if (!user?.emailVerifiedAt) return { error: "Could not verify this account." };
+ const { error: deleteError } = await database.from("audri_pending_signups").delete().eq("email", normalizedEmail);
+ if (deleteError) throw new Error(`Could not clear pending signup: ${deleteError.message}`);
+ return { user: toPublic(user, true) };
+}
+
 export async function authenticate(email: string, password: string): Promise<{ user?: PublicUser; error?: string }> {
  const user = await findUser(email);
  if (!user || !verifyPassword(password, user.passwordHash)) return { error: "Email or password is incorrect." };
+ if (getAdminDatabase() && !user.emailVerifiedAt) return { error: "Verify your email before signing in." };
  return { user: toPublic(user, true) };
 }
 
@@ -412,6 +533,41 @@ export async function resetPassword(token: string, password: string): Promise<bo
    Boolean(candidate.passwordResetExpiresAt) &&
    candidate.passwordResetExpiresAt! > now
   );
+  if (!user) return false;
+  user.passwordHash = nextHash;
+  user.passwordResetDigest = undefined;
+  user.passwordResetExpiresAt = undefined;
+  user.sessionVersion = (user.sessionVersion || 1) + 1;
+  return true;
+ });
+}
+
+export async function setPasswordAfterEmailVerification(email: string, password: string): Promise<boolean> {
+ if (password.length < 10) return false;
+ const normalizedEmail = normalize(email);
+ const nextHash = hashPassword(password);
+ const database = getAdminDatabase();
+ if (database) {
+  const { data: current, error: readError } = await database.from("audri_users")
+   .select("session_version")
+   .eq("email", normalizedEmail)
+   .maybeSingle();
+  if (readError) throw new Error("Could not read account: " + readError.message);
+  if (!current) return false;
+
+  const { error } = await database.from("audri_users").update({
+   password_hash: nextHash,
+   password_reset_digest: null,
+   password_reset_expires_at: null,
+   session_version: (current.session_version || 1) + 1,
+   updated_at: new Date().toISOString(),
+  }).eq("email", normalizedEmail);
+  if (error) throw new Error("Could not update password: " + error.message);
+  return true;
+ }
+ assertProductionDatabase();
+ return updateLocal((users) => {
+  const user = users.find((candidate) => candidate.email === normalizedEmail);
   if (!user) return false;
   user.passwordHash = nextHash;
   user.passwordResetDigest = undefined;

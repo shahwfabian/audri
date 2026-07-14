@@ -29,9 +29,28 @@ export type SessionGuard =
  | { ok: true; session: Session }
  | { ok: false; response: NextResponse };
 
+function cookieFromRequest(req: NextRequest | Request, name: string): string | undefined {
+ const header = req.headers.get("cookie");
+ if (!header) return undefined;
+
+ for (const part of header.split(";")) {
+  const separator = part.indexOf("=");
+  if (separator < 0 || part.slice(0, separator).trim() !== name) continue;
+  const value = part.slice(separator + 1).trim();
+  try {
+   return decodeURIComponent(value);
+  } catch {
+   return value;
+  }
+ }
+ return undefined;
+}
+
 export async function requireSession(req: NextRequest | Request): Promise<SessionGuard> {
  const bearer = bearerFrom(req.headers.get("authorization"));
- const cookie = req instanceof NextRequest ? req.cookies.get("audri_session")?.value : undefined;
+ // Parse the standard Cookie header directly. Runtime class identity can differ
+ // across serverless bundles, so `instanceof NextRequest` is not reliable here.
+ const cookie = cookieFromRequest(req, "audri_session");
  const session = verifySession(bearer ?? cookie);
  if (!session) {
  return {

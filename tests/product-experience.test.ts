@@ -30,6 +30,19 @@ test("provider failures remain customer-friendly", () => {
  const message = friendlyError(new Error("invalid_api_key: provider authentication failed"));
  assert.match(message, /temporarily unavailable/i);
  assert.doesNotMatch(message, /api key|anthropic|settings/i);
+
+ const repeated = friendlyError(new Error(message));
+ assert.equal(repeated, message);
+});
+
+test("resume import accepts PDFs in profile and onboarding", () => {
+ const profile = read("app/(dashboard)/profile/page.tsx");
+ const onboarding = read("app/(dashboard)/onboarding/page.tsx");
+ const route = read("app/api/ai/parse-resume/route.ts");
+ assert.match(profile, /accept="application\/pdf,\.pdf"/);
+ assert.match(onboarding, /accept="application\/pdf,\.pdf"/);
+ assert.match(route, /multipart\/form-data/);
+ assert.match(route, /extractResumePdf/);
 });
 
 test("primary product logo uses the triangle mark", () => {

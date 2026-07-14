@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { bearerFrom } from "@/lib/auth/crypto";
 import { requireSession } from "@/lib/auth/guards";
+import { findUser, getUserProfile, getUserWorkspace, toPublic } from "@/lib/auth/users";
+
+export async function GET(req: NextRequest) {
+ const auth = await requireSession(req);
+ if (!auth.ok) return auth.response;
+ const user = await findUser(auth.session.email);
+ if (!user) return NextResponse.json({ error: "Your session has expired." }, { status: 401 });
+ return NextResponse.json({
+  user: toPublic(user),
+  profile: await getUserProfile(auth.session.email),
+  workspace: await getUserWorkspace(auth.session.email),
+ });
+}
 
 export async function POST(req: NextRequest) {
  const auth = await requireSession(req);

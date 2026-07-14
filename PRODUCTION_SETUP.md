@@ -6,9 +6,10 @@ The application code supports production storage, subscription billing, recovery
 
 1. Create a Supabase project.
 2. Run supabase/migrations/202607130001_audri_production.sql in the SQL editor.
-3. Set NEXT_PUBLIC_SUPABASE_URL.
-4. Set SUPABASE_SERVICE_ROLE_KEY only in the server environment.
-5. Confirm anonymous and authenticated browser roles cannot query audri_users.
+3. Run supabase/migrations/202607130002_email_verification.sql.
+4. Set NEXT_PUBLIC_SUPABASE_URL.
+5. Set SUPABASE_SERVICE_ROLE_KEY only in the server environment.
+6. Confirm anonymous and authenticated browser roles cannot query customer tables.
 
 If data/users.json contains real customer accounts, run npm run migrate:users after configuring the database. Keep the same AUDRI_SECRET during migration.
 
@@ -43,10 +44,11 @@ Manual activation is disabled by default. Keep AUDRI_ALLOW_MANUAL_ACTIVATION fal
 
 ## 5. Transactional email
 
-1. Verify the sending domain with Resend.
-2. Set RESEND_API_KEY.
-3. Set EMAIL_FROM to the verified sender.
-4. Request a password reset and confirm the link expires after 30 minutes.
+1. Create a transactional email provider account and verify the sending domain.
+2. Configure the provider as custom SMTP in Supabase.
+3. Update the Magic link or OTP template to display the one-time code.
+4. Set AUDRI_REQUIRE_EMAIL_VERIFICATION true.
+5. Complete one signup verification and one password recovery test.
 
 ## 6. Monitoring
 

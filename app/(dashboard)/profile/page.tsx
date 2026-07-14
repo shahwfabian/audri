@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { generateId } from "@/lib/utils";
+import { safeApiResponse } from "@/lib/errors";
 import { toast } from "sonner";
 import {
  User,
@@ -15,6 +16,7 @@ import {
  Save,
  ShieldCheck,
  CheckCircle2,
+ FileUp,
 } from "lucide-react";
 import type { Achievement, AchievementCategory, StudentProfile } from "@/lib/types";
 
@@ -87,6 +89,7 @@ export default function ProfilePage() {
  const { profile, user, updateProfile } = useAppStore();
  const [uploading, setUploading] = useState(false);
  const [resumeText, setResumeText] = useState("");
+ const [resumeFile, setResumeFile] = useState<File | null>(null);
  const [showResumeInput, setShowResumeInput] = useState(false);
  const [showAddAchievement, setShowAddAchievement] = useState(false);
  const [editingBasic, setEditingBasic] = useState(false);
@@ -146,22 +149,28 @@ export default function ProfilePage() {
  const [achEnd, setAchEnd] = useState("");
 
  async function handleResumeUpload() {
- if (!resumeText.trim()) { toast.error("Paste your resume text first."); return; }
+ if (!resumeFile && !resumeText.trim()) { toast.error("Attach a PDF or paste your resume text."); return; }
  setUploading(true);
  try {
+ const formData = resumeFile ? new FormData() : null;
+ if (formData && resumeFile) formData.set("file", resumeFile);
  const res = await fetch("/api/ai/parse-resume", {
  method: "POST",
- headers: { "Content-Type": "application/json", ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}) },
- body: JSON.stringify({ text: resumeText }),
+ headers: {
+ ...(formData ? {} : { "Content-Type": "application/json" }),
+ ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
+ },
+ body: formData ?? JSON.stringify({ text: resumeText }),
  });
- if (!res.ok) throw new Error();
- const data = await res.json();
+ const { data, error } = await safeApiResponse<{ profile: Partial<StudentProfile>; achievements: Achievement[] }>(res);
+ if (error || !data) throw new Error(error ?? "Could not read that resume.");
  updateProfile({ ...data.profile, achievements: [...(profile?.achievements ?? []), ...data.achievements] });
  setResumeText("");
+ setResumeFile(null);
  setShowResumeInput(false);
- toast.success(`Profile updated! ${data.achievements.length} achievements extracted.`);
- } catch {
- toast.error("Could not read that resume. Try again in a moment.");
+ toast.success(`Profile updated. ${data.achievements.length} achievements extracted.`);
+ } catch (error) {
+ toast.error(error instanceof Error ? error.message : "Could not read that resume. Try again in a moment.");
  } finally {
  setUploading(false);
  }
@@ -257,23 +266,50 @@ export default function ProfilePage() {
  <span className="font-semibold text-sm" style={{ color: "var(--gold-light)" }}>Import from Resume</span>
  </div>
  <button onClick={() => setShowResumeInput(!showResumeInput)} className="text-xs font-medium hover:underline" style={{ color: "var(--gold)" }}>
- {showResumeInput ? "Cancel" : "Paste Resume"}
+ {showResumeInput ? "Cancel" : "Add Resume"}
  </button>
  </div>
- <p className="text-xs" style={{ color: "var(--gold-dark)" }}>Paste your resume text and AI will extract all your achievements, skills, and education automatically.</p>
+ <p className="text-xs" style={{ color: "var(--gold-dark)" }}>Attach a PDF or paste the text. Audri will organize the details into your profile.</p>
 
  {showResumeInput && (
  <div className="mt-4 space-y-3">
+ <div className="flex flex-wrap items-center gap-2">
+ <label className="btn-ghost flex items-center gap-2 px-4 py-2 text-sm cursor-pointer">
+ <FileUp className="w-4 h-4" /> Attach PDF
+ <input
+ type="file"
+ accept="application/pdf,.pdf"
+ className="sr-only"
+ onChange={(event) => setResumeFile(event.target.files?.[0] ?? null)}
+ />
+ </label>
+ {resumeFile && (
+ <button
+ type="button"
+ onClick={() => setResumeFile(null)}
+ className="btn-ghost flex items-center gap-2 px-3 py-2 text-xs"
+ aria-label={`Remove ${resumeFile.name}`}
+ >
+ <span className="max-w-[260px] truncate">{resumeFile.name}</span>
+ <X className="w-3.5 h-3.5" />
+ </button>
+ )}
+ </div>
+ <div className="flex items-center gap-3">
+ <div className="gold-line flex-1" />
+ <span className="text-xs" style={{ color: "var(--text-3)" }}>or paste text</span>
+ <div className="gold-line flex-1" />
+ </div>
  <textarea
  value={resumeText}
  onChange={(e) => setResumeText(e.target.value)}
  rows={8}
- placeholder="Paste your resume text here..."
+ placeholder="Paste your resume text here"
  className="input-dark w-full px-3 py-2.5 text-sm resize-none font-mono"
  />
  <button onClick={handleResumeUpload} disabled={uploading} className="btn-gold flex items-center gap-2 px-4 py-2 text-sm">
  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
- {uploading ? "Parsing..." : "Parse with AI"}
+ {uploading ? "Reading resume..." : "Import Resume"}
  </button>
  </div>
  )}

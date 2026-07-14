@@ -17,7 +17,7 @@ interface AppState {
  isLoggedIn: boolean;
  setUser: (user: User | null) => void;
  /** Sign in as a (possibly different) account: clears the previous user's data and adopts the server profile. */
- signIn: (user: User, serverProfile: StudentProfile | null, serverWorkspace?: ServerWorkspace | null) => void;
+ signIn: (user: User, serverProfile: StudentProfile | null, serverWorkspace?: ServerWorkspace | null, rememberSession?: boolean) => void;
  login: (email: string, name: string) => void;
  logout: () => void;
 
@@ -64,6 +64,9 @@ interface AppState {
  // Hydration flag, true once Zustand has read from localStorage
  _hasHydrated: boolean;
  setHasHydrated: (v: boolean) => void;
+ _sessionChecked: boolean;
+ setSessionChecked: (v: boolean) => void;
+ rememberSession: boolean;
 }
 
 interface ServerWorkspace {
@@ -118,12 +121,14 @@ export const useAppStore = create<AppState>()(
  user: null,
  isLoggedIn: false,
  setUser: (user) => set({ user, isLoggedIn: !!user }),
- signIn: (user, serverProfile, serverWorkspace) => {
+ signIn: (user, serverProfile, serverWorkspace, rememberSession = true) => {
  const previous = get().user;
  const sameAccount = previous?.email?.toLowerCase() === user.email.toLowerCase();
  set({
  user,
  isLoggedIn: true,
+ rememberSession,
+ _sessionChecked: true,
  // A different account must never inherit the previous student's data
  profile: serverProfile ?? (sameAccount ? get().profile : null),
   ...(serverWorkspace
@@ -155,7 +160,7 @@ export const useAppStore = create<AppState>()(
  role: "STUDENT",
  createdAt: new Date().toISOString(),
  };
- set({ user, isLoggedIn: true });
+ set({ user, isLoggedIn: true, rememberSession: true, _sessionChecked: true });
  },
  logout: () => {
  if (typeof window !== "undefined") fetch("/api/auth/session", { method: "DELETE" }).catch(() => {});
@@ -168,6 +173,8 @@ export const useAppStore = create<AppState>()(
  savedScholarships: [],
  essayDrafts: [],
  gapAnalysis: null,
+ rememberSession: false,
+ _sessionChecked: true,
  });
  },
 
@@ -310,21 +317,28 @@ export const useAppStore = create<AppState>()(
 
  _hasHydrated: false,
  setHasHydrated: (v) => set({ _hasHydrated: v }),
+ _sessionChecked: false,
+ setSessionChecked: (v) => set({ _sessionChecked: v }),
+ rememberSession: true,
  }),
  {
  name: "audri-store",
  onRehydrateStorage: () => (state) => {
  state?.setHasHydrated(true);
- const token = state?.user?.token;
- if (token && typeof window !== "undefined") {
-  fetch("/api/auth/session", { method: "POST", headers: { Authorization: "Bearer " + token } })
-   .then((response) => {
-    if (response.ok && state.user) state.setUser({ ...state.user, token: undefined });
-   })
-   .catch(() => {});
- }
+ if (!state || typeof window === "undefined") return;
+ fetch("/api/auth/session")
+  .then(async (response) => {
+   if (!response.ok) {
+    state.logout();
+    return;
+   }
+   const data = await response.json();
+   if (data.user) state.signIn({ ...data.user, role: "STUDENT" }, data.profile ?? null, data.workspace ?? null, state.rememberSession);
+  })
+  .catch(() => state.logout())
+  .finally(() => state.setSessionChecked(true));
  },
- partialize: (s) => ({
+ partialize: (s) => s.rememberSession ? ({
  user: s.user,
  isLoggedIn: s.isLoggedIn,
  profile: s.profile,
@@ -335,7 +349,8 @@ export const useAppStore = create<AppState>()(
  gapAnalysis: s.gapAnalysis,
  dailyGoal: s.dailyGoal,
  streak: s.streak,
- }),
+ rememberSession: true,
+ }) : ({ rememberSession: false }),
  }
  )
 );

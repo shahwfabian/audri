@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticate, getUserProfile, getUserWorkspace } from "@/lib/auth/users";
 import { clientAddress, enforceRateLimit, readJsonBody, requestGuardResponse } from "@/lib/auth/guards";
 
-/** Email + password sign-in. No verification codes, ever. */
+/** Email and password sign-in for verified accounts. */
 export async function POST(req: NextRequest) {
  try {
  const limited = await enforceRateLimit(`login:${clientAddress(req)}`, 10, 15 * 60_000);
  if (limited) return limited;
- const body = await readJsonBody<{ email?: string; password?: string }>(req, 16_384);
- const { email, password } = body;
+ const body = await readJsonBody<{ email?: string; password?: string; remember?: boolean }>(req, 16_384);
+ const { email, password, remember } = body;
 
  if (!email || !password) {
  return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
    httpOnly: true,
    secure: process.env.NODE_ENV === "production",
    sameSite: "lax",
-   maxAge: 60 * 60 * 24 * 30,
+   ...(remember === false ? {} : { maxAge: 60 * 60 * 24 * 30 }),
    path: "/",
   });
  }

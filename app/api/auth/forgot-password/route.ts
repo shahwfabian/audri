@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clientAddress, enforceRateLimit, readJsonBody, requestGuardResponse } from "@/lib/auth/guards";
-import { createPasswordReset } from "@/lib/auth/users";
-import { sendPasswordResetEmail } from "@/lib/email/send";
+import { findUser } from "@/lib/auth/users";
+import { sendPasswordResetCode } from "@/lib/auth/emailVerification";
 
 export async function POST(req: NextRequest) {
  try {
@@ -11,11 +11,7 @@ export async function POST(req: NextRequest) {
   const email = body.email?.trim().toLowerCase();
   if (!email) return NextResponse.json({ ok: true });
 
-  const token = await createPasswordReset(email);
-  if (token) {
-   const origin = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
-   await sendPasswordResetEmail(email, origin + "/reset-password?token=" + encodeURIComponent(token));
-  }
+  if (await findUser(email)) await sendPasswordResetCode(email);
   return NextResponse.json({ ok: true });
  } catch (error) {
   const guarded = requestGuardResponse(error);

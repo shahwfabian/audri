@@ -16,6 +16,7 @@ const ERROR_MAP: Record<string, string> = {
  "not configured": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
  "invalid_api_key": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
  "authentication_error": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
+ "temporarily unavailable": "Audri's AI service is temporarily unavailable. Please try again in a few minutes.",
  // Rate limits
  "rate_limit": "Audri is handling high demand. Wait a moment and try again.",
  "rate limit": "Too many requests, wait a moment and try again.",

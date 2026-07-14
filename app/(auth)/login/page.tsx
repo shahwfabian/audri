@@ -13,6 +13,7 @@ export default function LoginPage() {
  const { signIn } = useAppStore();
  const [email, setEmail] = useState("");
  const [password, setPassword] = useState("");
+ const [remember, setRemember] = useState(true);
  const [loading, setLoading] = useState(false);
 
  async function handleSubmit(e: React.FormEvent) {
@@ -23,14 +24,14 @@ export default function LoginPage() {
  const res = await fetch("/api/auth/login", {
  method: "POST",
  headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ email, password }),
+ body: JSON.stringify({ email, password, remember }),
  });
  const data = await res.json();
  if (!res.ok || !data.user) {
  toast.error(data.error ?? "Sign-in failed.");
  return;
  }
- signIn({ ...data.user, role: "STUDENT" }, data.profile ?? null, data.workspace ?? null);
+ signIn({ ...data.user, role: "STUDENT" }, data.profile ?? null, data.workspace ?? null, remember);
  toast.success(`Welcome back, ${data.user.name}!`);
  router.push("/generate");
  } catch {
@@ -94,7 +95,11 @@ export default function LoginPage() {
  />
  </div>
  </div>
- <div className="text-right mt-2">
+ <div className="flex items-center justify-between gap-4 mt-2">
+  <label className="flex items-center gap-2 text-xs" style={{ color: "var(--text-2)" }}>
+   <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
+   <span>Remember me on this browser</span>
+  </label>
   <Link href="/forgot-password" className="text-xs hover:underline" style={{ color: "var(--text-2)" }}>Forgot password?</Link>
  </div>
 

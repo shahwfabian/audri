@@ -17,10 +17,10 @@ export default function PrivacyPage() {
    <LegalSection title="Service providers">
     <p>Audri uses service providers only where needed to operate the product.</p>
     <ul className="list-disc pl-5 space-y-2">
-     <li>Anthropic processes prompts and generated responses for AI features.</li>
+     <li>An AI model provider processes prompts and generated responses for requested writing features.</li>
      <li>Stripe processes subscription payments.</li>
      <li>Supabase hosts production database records when configured.</li>
-     <li>Resend delivers password-recovery email when configured.</li>
+     <li>A transactional email provider delivers account security messages when configured.</li>
     </ul>
     <p>AI requests are sent through Audri&apos;s protected server routes. Customers do not provide or store provider credentials in the browser.</p>
    </LegalSection>

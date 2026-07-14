@@ -69,13 +69,13 @@ const highlights = [
 
 export default function LandingPage() {
  const router = useRouter();
- const { isLoggedIn, _hasHydrated } = useAppStore();
+ const { isLoggedIn, _hasHydrated, _sessionChecked } = useAppStore();
 
  // The website pops open to the flagship: signed-in students never see
  // marketing, they land directly in the Essay Generator.
  useEffect(() => {
- if (_hasHydrated && isLoggedIn) router.replace("/generate");
- }, [_hasHydrated, isLoggedIn, router]);
+ if (_hasHydrated && _sessionChecked && isLoggedIn) router.replace("/generate");
+ }, [_hasHydrated, _sessionChecked, isLoggedIn, router]);
 
  return (
  <div className="min-h-screen" style={{ background: "var(--bg)" }}>

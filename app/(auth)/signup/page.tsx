@@ -34,12 +34,21 @@ export default function SignupPage() {
  body: JSON.stringify({ name, email, password, acceptedTerms }),
  });
  const data = await res.json();
- if (!res.ok || !data.user) {
+ if (!res.ok) {
  toast.error(data.error ?? "Could not create your account.");
  return;
  }
+ if (data.verificationRequired && data.email) {
+  toast.success("Check your email for your verification code.");
+  router.push(`/verify-email?email=${encodeURIComponent(data.email)}`);
+  return;
+ }
+ if (!data.user) {
+  toast.error("Could not create your account.");
+  return;
+ }
  signIn({ ...data.user, role: "STUDENT" }, null);
- toast.success(`Welcome to Audri, ${data.user.name}! No verification needed, you're in.`);
+ toast.success(`Welcome to Audri, ${data.user.name}!`);
  router.push("/onboarding");
  } catch {
  toast.error("Could not reach the server. Try again.");
@@ -134,7 +143,7 @@ export default function SignupPage() {
  />
  </div>
  <p className="text-[11px] mt-1.5" style={{ color: "var(--text-3)" }}>
- No verification codes. No confirmation emails. Your account works instantly.
+ Use an email you control. It protects account access and password recovery.
  </p>
  </div>
 

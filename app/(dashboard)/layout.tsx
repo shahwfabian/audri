@@ -46,15 +46,15 @@ const navItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
  const router = useRouter();
  const pathname = usePathname();
- const { isLoggedIn, user, logout, sidebarOpen, setSidebarOpen, profile, onboardingComplete, _hasHydrated } =
+ const { isLoggedIn, user, logout, sidebarOpen, setSidebarOpen, profile, onboardingComplete, _hasHydrated, _sessionChecked } =
  useAppStore();
 
  useEffect(() => {
- if (!_hasHydrated) return;
+ if (!_hasHydrated || !_sessionChecked) return;
  if (!isLoggedIn) router.push("/login");
- }, [isLoggedIn, _hasHydrated, router]);
+ }, [isLoggedIn, _hasHydrated, _sessionChecked, router]);
 
- if (!_hasHydrated) {
+ if (!_hasHydrated || !_sessionChecked) {
  return (
  <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
  <div className="flex items-center gap-3" style={{ color: "var(--text-2)" }}>

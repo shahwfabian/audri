@@ -14,10 +14,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
- title: "Audri, Your Scholarship Operating System",
+ metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://audriai.vercel.app"),
+ title: "Audri | Scholarship Research and Essay Writing",
  description:
- "One profile. Every scholarship. Every essay. Every opportunity. Audri is the AI-powered scholarship command center for students.",
+ "Audri researches scholarship funders and helps students draft accurate essays from their real experiences.",
  keywords: ["scholarships", "AI", "college", "financial aid", "essays", "students"],
+ openGraph: {
+  title: "Audri | Scholarship Research and Essay Writing",
+  description: "Research scholarship funders and build accurate essays from your real experiences.",
+  type: "website",
+ },
 };
 
 export default function RootLayout({

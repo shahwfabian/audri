@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAppStore } from "@/lib/store";
 import { AudriLogo } from "@/components/AudriLogo";
 import { generateId } from "@/lib/utils";
+import { safeApiResponse } from "@/lib/errors";
 import { toast } from "sonner";
 import {
  ArrowRight,
@@ -16,8 +17,9 @@ import {
  Target,
  FileText,
  BookOpen,
+ FileUp,
 } from "lucide-react";
-import type { StudentProfile } from "@/lib/types";
+import type { Achievement, StudentProfile } from "@/lib/types";
 
 const STEPS = [
  { id: 1, title: "Welcome to Audri", sub: "Let's build your scholarship profile" },
@@ -38,7 +40,9 @@ export default function OnboardingPage() {
  const [gpa, setGpa] = useState("");
  const [graduationYear, setGraduationYear] = useState("");
  const [resumeText, setResumeText] = useState("");
- const [resumeMode, setResumeMode] = useState<"paste" | "skip">("paste");
+ const [resumeFile, setResumeFile] = useState<File | null>(null);
+ const [resumeMode, setResumeMode] = useState<"pdf" | "paste" | "skip">("pdf");
+ const [parsedResume, setParsedResume] = useState<{ profile: Partial<StudentProfile>; achievements: Achievement[] } | null>(null);
  const [longTermGoals, setLongTermGoals] = useState("");
  const [careerInterests, setCareerInterests] = useState("");
  const [isFirstGen, setIsFirstGen] = useState<boolean | null>(null);
@@ -58,28 +62,39 @@ export default function OnboardingPage() {
  }
 
  async function handleResumeProcess() {
- if (!resumeText.trim() && resumeMode !== "skip") {
- toast.error("Please paste your resume text first.");
+ if (resumeMode === "pdf" && !resumeFile) {
+ toast.error("Choose your resume PDF first.");
+ return;
+ }
+ if (resumeMode === "paste" && !resumeText.trim()) {
+ toast.error("Paste your resume text first.");
  return;
  }
  setAiProcessing(true);
  try {
- if (resumeText.trim()) {
+ if (resumeFile || resumeText.trim()) {
+ const formData = resumeFile ? new FormData() : null;
+ if (formData && resumeFile) formData.set("file", resumeFile);
  const res = await fetch("/api/ai/parse-resume", {
  method: "POST",
- headers: { "Content-Type": "application/json", ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}) },
- body: JSON.stringify({ text: resumeText }),
+ headers: {
+ ...(formData ? {} : { "Content-Type": "application/json" }),
+ ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
+ },
+ body: formData ?? JSON.stringify({ text: resumeText }),
  });
- if (res.ok) {
- toast.success("Resume parsed successfully!");
+ const { data, error } = await safeApiResponse<{ profile: Partial<StudentProfile>; achievements: Achievement[] }>(res);
+ if (data) {
+ setParsedResume(data);
+ toast.success("Resume added to your profile.");
  } else {
- toast.info("Continuing without AI parsing, you can add details manually.");
+ toast.error(error ?? "Could not read that resume.");
+ return;
  }
  }
  goNext();
  } catch {
- toast.info("Skipping AI parse, continuing manually.");
- goNext();
+ toast.error("Could not read that resume. Try again or skip this step.");
  } finally {
  setAiProcessing(false);
  }
@@ -91,22 +106,26 @@ export default function OnboardingPage() {
  const profile: StudentProfile = {
  id: generateId("profile"),
  userId: user?.id ?? "",
- fullName: user?.name ?? "",
+ fullName: user?.name || parsedResume?.profile.fullName || "",
  email: user?.email ?? "",
- schoolName: schoolName || undefined,
- educationLevel: (educationLevel as StudentProfile["educationLevel"]) || undefined,
- major: major || undefined,
- gpa: gpa ? parseFloat(gpa) : undefined,
- graduationYear: graduationYear ? parseInt(graduationYear) : undefined,
- careerInterests: careerInterests.split(",").map((s) => s.trim()).filter(Boolean),
- longTermGoals: longTermGoals || undefined,
+ phone: parsedResume?.profile.phone,
+ location: parsedResume?.profile.location,
+ schoolName: schoolName || parsedResume?.profile.schoolName || undefined,
+ educationLevel: (educationLevel as StudentProfile["educationLevel"]) || parsedResume?.profile.educationLevel,
+ major: major || parsedResume?.profile.major || undefined,
+ gpa: gpa ? parseFloat(gpa) : parsedResume?.profile.gpa,
+ graduationYear: graduationYear ? parseInt(graduationYear) : parsedResume?.profile.graduationYear,
+ careerInterests: careerInterests
+ ? careerInterests.split(",").map((s) => s.trim()).filter(Boolean)
+ : parsedResume?.profile.careerInterests ?? [],
+ longTermGoals: longTermGoals || parsedResume?.profile.longTermGoals || undefined,
  isFirstGeneration: isFirstGen ?? undefined,
  financialNeedContext: financialNeed || undefined,
  demographics: [],
- languages: [],
- skills: [],
- certifications: [],
- achievements: [],
+ languages: parsedResume?.profile.languages ?? [],
+ skills: parsedResume?.profile.skills ?? [],
+ certifications: parsedResume?.profile.certifications ?? [],
+ achievements: parsedResume?.achievements ?? [],
  stories: [],
  profileStrength: calculateInitialStrength(),
  profileStrengthBreakdown: {
@@ -135,7 +154,7 @@ export default function OnboardingPage() {
  if (schoolName) score += 10;
  if (major) score += 10;
  if (gpa) score += 10;
- if (resumeText.trim()) score += 20;
+ if (parsedResume || resumeText.trim() || resumeFile) score += 20;
  if (longTermGoals) score += 15;
  if (careerInterests) score += 10;
  if (isFirstGen !== null) score += 5;
@@ -259,6 +278,7 @@ export default function OnboardingPage() {
  <div className="space-y-4">
  <div className="flex gap-2">
  {[
+ { id: "pdf", icon: FileUp, label: "Attach PDF" },
  { id: "paste", icon: Keyboard, label: "Paste resume" },
  { id: "skip", icon: CheckCircle2, label: "Skip for now" },
  ].map((mode) => (
@@ -279,6 +299,22 @@ export default function OnboardingPage() {
  </button>
  ))}
  </div>
+
+ {resumeMode === "pdf" && (
+ <div className="rounded-xl p-5" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+ <label className="btn-ghost flex items-center justify-center gap-2 px-4 py-3 text-sm cursor-pointer">
+ <FileUp className="w-4 h-4" /> {resumeFile ? "Choose another PDF" : "Choose PDF"}
+ <input
+ type="file"
+ accept="application/pdf,.pdf"
+ className="sr-only"
+ onChange={(event) => setResumeFile(event.target.files?.[0] ?? null)}
+ />
+ </label>
+ {resumeFile && <p className="text-xs mt-3 text-center truncate" style={{ color: "var(--text-2)" }}>{resumeFile.name}</p>}
+ <p className="text-xs mt-2 text-center" style={{ color: "var(--text-3)" }}>PDF files up to 8 MB are supported.</p>
+ </div>
+ )}
 
  {resumeMode === "paste" && (
  <div>
@@ -312,8 +348,8 @@ export default function OnboardingPage() {
  className="btn-gold flex-1 flex items-center justify-center gap-2 text-sm"
  >
  {aiProcessing
- ? <><Loader2 className="w-4 h-4 animate-spin" /> Parsing with AI...</>
- : <>{resumeMode === "paste" && resumeText ? "Parse with AI" : "Continue"} <ArrowRight className="w-4 h-4" /></>}
+ ? <><Loader2 className="w-4 h-4 animate-spin" /> Reading resume...</>
+ : <>{resumeMode === "skip" ? "Continue" : "Import Resume"} <ArrowRight className="w-4 h-4" /></>}
  </button>
  </div>
  </div>

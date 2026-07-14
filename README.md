@@ -23,7 +23,7 @@ AI output must be reviewed by the student before submission.
 - Tailwind CSS
 - Supabase PostgreSQL for production records
 - Stripe for subscriptions
-- Anthropic for AI features
+- A managed AI provider for writing features
 - Sentry for error monitoring
 - Resend for recovery email
 

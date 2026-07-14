@@ -121,6 +121,27 @@ test("login moves the session into an HTTP-only cookie", async () => {
  assert.equal(authorized.status, 200);
 });
 
+test("session guard accepts cookies from a standard Request", async () => {
+ const created = await usersModule.createUser("cookie-request@example.com", "Cookie Student", "strong-password", true);
+ assert.ok(created.user?.token);
+ const guarded = await guardsModule.requireSession(new Request("http://localhost/protected", {
+  headers: { Cookie: `audri_session=${created.user!.token}` },
+ }));
+ assert.equal(guarded.ok, true);
+});
+
+test("login can use a browser-session cookie when remember me is off", async () => {
+ const response = await loginRoute.POST(new NextRequest("http://localhost/api/auth/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email: "first@example.com", password: "strong-password", remember: false }),
+ }));
+ assert.equal(response.status, 200);
+ const setCookie = response.headers.get("set-cookie") ?? "";
+ assert.match(setCookie, /audri_session=/);
+ assert.doesNotMatch(setCookie, /Max-Age/i);
+});
+
 test("administrative scraper fails closed", async () => {
  const original = process.env.CRON_SECRET;
  delete process.env.CRON_SECRET;

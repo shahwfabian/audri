@@ -1,9 +1,9 @@
 name: CI
 
 on:
-  pull_request:
   push:
     branches: [main]
+  pull_request:
 
 permissions:
   contents: read
@@ -11,7 +11,13 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    env:
+      AUDRI_SECRET: audri-ci-only-secret-with-sufficient-length
+      CRON_SECRET: audri-ci-cron-secret
+      NEXT_PUBLIC_APP_URL: https://audriai.vercel.app
+      AUDRI_REQUIRE_EMAIL_VERIFICATION: "false"
+      DISABLE_SCRAPE_SCHEDULER: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,9 +28,3 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
-        env:
-          AUDRI_SECRET: ci-only-secret-with-at-least-32-characters
-          ANTHROPIC_API_KEY: ci-placeholder-key
-          AI_MODEL: ci-placeholder-model
-          AI_MODEL_FAST: ci-placeholder-model
-          DISABLE_SCRAPE_SCHEDULER: "true"
