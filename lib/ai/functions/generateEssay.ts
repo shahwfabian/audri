@@ -47,7 +47,7 @@ interface EssayStrategyResult {
 function buildStudentDossier(input: EssayGenerationInput): string {
   const p = input.profile;
 
-  const achievements = p.achievements
+  const achievements = (p.achievements ?? [])
     .slice(0, 12)
     .map((a) => {
       const bits = [a.title, a.role, a.organization, a.description, a.impact, ...(a.metrics ?? [])].filter(Boolean);

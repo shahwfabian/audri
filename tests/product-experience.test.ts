@@ -45,6 +45,11 @@ test("resume import accepts PDFs in profile and onboarding", () => {
  assert.match(route, /extractResumePdf/);
 });
 
+test("essay generation tolerates partial legacy profiles", () => {
+ const source = read("lib/ai/functions/generateEssay.ts");
+ assert.match(source, /\(p\.achievements \?\? \[\]\)/);
+});
+
 test("primary product logo uses the triangle mark", () => {
  const logo = read("components/AudriLogo.tsx");
  assert.match(logo, /M32 7L58 55H6L32 7Z/);
