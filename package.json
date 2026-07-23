@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --import tsx --test tests/security.test.ts tests/tone-catalog.test.ts tests/product-experience.test.ts tests/autoresearch-eval.test.ts tests/billing-lifecycle.test.ts",
+    "test": "node --import tsx --test tests/security.test.ts tests/tone-catalog.test.ts tests/product-experience.test.ts tests/autoresearch-eval.test.ts tests/billing-lifecycle.test.ts tests/essay-readiness.test.ts",
     "eval:essays": "tsx scripts/eval-essays.ts",
     "scrape": "tsx scripts/scrape.ts",
     "scrape:seed": "tsx scripts/scrape.ts --source=seed-only",

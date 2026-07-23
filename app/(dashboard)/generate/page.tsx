@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAppStore } from "@/lib/store";
 import { generateId } from "@/lib/utils";
 import { safeApiResponse } from "@/lib/errors";
+import { hasEssayMaterial } from "@/lib/ai/essayReadiness";
 import { TonePicker } from "@/components/TonePicker";
 import { DEFAULT_TONE_ID } from "@/lib/ai/tones";
 import { toast } from "sonner";
@@ -19,8 +20,6 @@ import {
  PenLine,
  ChevronDown,
  ShieldCheck,
- BookMarked,
- X,
 } from "lucide-react";
 import type { EssayDraft } from "@/lib/types";
 
@@ -44,19 +43,19 @@ interface AutoEssayResult {
 }
 
 const LOADING_STAGES = [
- "Reading every word you pasted…",
- "Extracting the prompt, deadline, and what the judges value…",
- "Digging through your profile for the story only YOU can tell…",
- "Running the “but why?” chain…",
- "Writing your essay, scene first, show don't tell…",
+ "Reading what you pasted...",
+ "Finding the prompt and deadline...",
+ "Matching the essay to your real details...",
+ "Checking the story angle...",
+ "Writing the draft...",
 ];
 
 const LOADING_STAGES_URL = [
- "Visiting the scholarship's website…",
- "Researching the organization behind it, mission, values, who they champion…",
- "Extracting the prompt, deadline, and what the judges value…",
- "Aligning your real story with what this funder rewards…",
- "Writing your essay, scene first, show don't tell…",
+ "Visiting the scholarship page...",
+ "Reading the funder's public context...",
+ "Finding the prompt and deadline...",
+ "Matching the essay to your real details...",
+ "Writing the draft...",
 ];
 
 export default function GeneratePage() {
@@ -71,19 +70,12 @@ export default function GeneratePage() {
  const [stage, setStage] = useState(0);
  const [result, setResult] = useState<AutoEssayResult | null>(null);
  const [saved, setSaved] = useState(false);
- const [showManualNudge, setShowManualNudge] = useState(false);
  const [paywalled, setPaywalled] = useState(false);
  const [quota, setQuota] = useState<{ plan: string; remaining: number | null } | null>(null);
  const consumedStoryAngle = useRef<string | null>(null);
-
- // First visit? Point them at the manual before anything else.
- useEffect(() => {
- try {
- // localStorage is an external browser system and must be read after mount.
- // eslint-disable-next-line react-hooks/set-state-in-effect
- if (!localStorage.getItem("audri:manual-seen")) setShowManualNudge(true);
- } catch {}
- }, []);
+ const notesRef = useRef<HTMLTextAreaElement | null>(null);
+ const needsEssayMaterial = !!profile
+  && !hasEssayMaterial(profile, profile.stories ?? [], extraNotes);
 
  // A story angle chosen in Story Studio prefills the notes here.
  useEffect(() => {
@@ -95,17 +87,10 @@ export default function GeneratePage() {
  );
  setShowNotes(true);
  setPendingStoryAngle(null);
- toast.success("Story angle added, paste a scholarship to build on it.");
+ toast.success("Story direction added. Add your real details before writing.");
  }
  // eslint-disable-next-line react-hooks/exhaustive-deps
  }, [pendingStoryAngle]);
-
- function dismissManualNudge() {
- setShowManualNudge(false);
- try {
- localStorage.setItem("audri:manual-seen", "1");
- } catch {}
- }
 
  const authHeaders: Record<string, string> = {
  "Content-Type": "application/json",
@@ -115,9 +100,24 @@ export default function GeneratePage() {
  const urlMode = !!scholarshipUrl.trim() || /^https?:\/\/\S+$/i.test(pastedText.trim());
  const stages = urlMode ? LOADING_STAGES_URL : LOADING_STAGES;
 
+ function openEssayMaterialEditor() {
+ setShowNotes(true);
+ requestAnimationFrame(() => {
+  const editor = notesRef.current;
+  if (!editor) return;
+  editor.focus();
+  editor.setSelectionRange(editor.value.length, editor.value.length);
+ });
+ }
+
  async function handleGenerate(promptOverride?: string, wordLimitOverride?: number | null) {
  if (!profile) {
  toast.error("Build your profile first, the essay has to be about YOU.");
+ return;
+ }
+ if (needsEssayMaterial) {
+ openEssayMaterialEditor();
+ toast.error("Add one real detail from your life before writing.");
  return;
  }
  if (!scholarshipUrl.trim() && pastedText.trim().length < 50) {
@@ -154,8 +154,9 @@ export default function GeneratePage() {
  return;
  }
 
- const { data, error } = await safeApiResponse<AutoEssayResult>(res);
+ const { data, error, code } = await safeApiResponse<AutoEssayResult>(res);
  if (error || !data) {
+ if (code === "PROFILE_NEEDS_ESSAY_MATERIAL") openEssayMaterialEditor();
  toast.error(error ?? "Generation failed. Try pasting more of the page.");
  return;
  }
@@ -192,42 +193,47 @@ export default function GeneratePage() {
  }
 
  const wordCount = result ? result.essay.trim().split(/\s+/).length : 0;
+ const displayedQuota = quota ?? (user ? { plan: user.plan, remaining: user.essaysRemaining ?? null } : null);
 
  return (
  <div className="max-w-4xl mx-auto space-y-6">
  {/* Hero */}
  <div className="text-center pt-2 pb-1">
  <h1 className="text-3xl font-bold" style={{ color: "var(--text)" }}>
- Paste the scholarship. <span className="text-gradient">Get the essay.</span>
+ Paste a scholarship. Get a draft.
  </h1>
  <p className="text-sm mt-2 max-w-xl mx-auto" style={{ color: "var(--text-2)" }}>
- Copy the entire scholarship page, A to Z, don&apos;t clean it up, and paste it below.
- Audri finds the prompt, studies what the judges want, and writes your essay from your real story.
+ Audri reads the scholarship and writes from your real story. When a funder page is available, it checks public context first.
  </p>
+ <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs" style={{ color: "var(--text-3)" }}>
+ <span>2 essays free</span>
+ <span aria-hidden="true">/</span>
+ <span>Built from your details</span>
+ <span aria-hidden="true">/</span>
+ <Link href="/manual" className="font-medium hover:underline" style={{ color: "var(--text-2)" }}>How it works</Link>
  </div>
-
- {showManualNudge && (
- <div className="rounded-2xl p-4 flex flex-wrap items-center gap-3" style={{ background: "var(--gold-10)", border: "1px solid var(--gold-25)" }}>
- <BookMarked className="w-5 h-5 shrink-0" style={{ color: "var(--gold)" }} />
- <p className="text-sm flex-1 min-w-[240px]" style={{ color: "var(--gold-light)" }}>
- <span className="font-semibold">First time here?</span> Read the manual, six steps, sixty seconds, and you&apos;ll know exactly how to win with Audri.
- </p>
- <Link href="/manual" className="btn-gold text-sm px-4 py-2 shrink-0">Open the Manual</Link>
- <button onClick={dismissManualNudge} aria-label="Dismiss" className="shrink-0 transition-colors" style={{ color: "var(--text-3)" }}
- onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text)")}
- onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-3)")}
- >
- <X className="w-4 h-4" />
- </button>
  </div>
- )}
 
  {!profile && (
  <div className="rounded-2xl p-4 flex items-center justify-between gap-4" style={{ background: "var(--gold-10)", border: "1px solid var(--gold-25)" }}>
  <p className="text-sm" style={{ color: "var(--gold-light)" }}>
- Your essay can only be as real as your profile. Build it once, every essay after that is instant.
+ Your essay can only be as real as your profile. Add your real details before writing.
  </p>
  <Link href="/onboarding" className="btn-gold text-sm px-4 py-2 shrink-0">Build my profile</Link>
+ </div>
+ )}
+
+ {profile && needsEssayMaterial && (
+ <div className="rounded-2xl p-4 flex flex-wrap items-center gap-4" style={{ background: "var(--surface)", border: "1px solid var(--border-2)" }}>
+ <div className="flex-1 min-w-[240px]">
+ <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Add one real detail before we write</p>
+ <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--text-2)" }}>
+ Describe a moment you remember clearly or a responsibility you handled. Audri will use only what you provide.
+ </p>
+ </div>
+ <button type="button" onClick={openEssayMaterialEditor} className="btn-secondary text-sm px-4 py-2 shrink-0">
+ Add my detail
+ </button>
  </div>
  )}
 
@@ -247,13 +253,13 @@ export default function GeneratePage() {
  {scholarshipUrl.trim() && (
  <p className="text-xs mt-2 flex items-center gap-1.5" style={{ color: "var(--gold-light)" }}>
  <ShieldCheck className="w-3.5 h-3.5" style={{ color: "var(--gold)" }} />
- Audri will study this organization&apos;s mission and background, then align your essay to what they reward.
+ Audri will read the page and use public funder context when available.
  </p>
  )}
 
  <div className="flex items-center gap-3 my-5">
  <div className="flex-1 gold-line" />
- <span className="text-xs font-medium" style={{ color: "var(--text-3)" }}>or paste the page itself</span>
+ <span className="text-xs font-medium" style={{ color: "var(--text-3)" }}>or paste the page text</span>
  <div className="flex-1 gold-line" />
  </div>
 
@@ -264,7 +270,7 @@ export default function GeneratePage() {
  value={pastedText}
  onChange={(e) => setPastedText(e.target.value)}
  rows={12}
- placeholder={`Select everything on the scholarship's website (Ctrl+A, Ctrl+C) and paste it here (Ctrl+V).\n\nName, sponsor, award amount, deadline, eligibility, essay prompt, judging criteria, even the navigation junk, paste it ALL. The AI sorts it out.`}
+ placeholder={`Paste the scholarship page text here.\n\nInclude the prompt and deadline. Add eligibility or award details when you have them.`}
  className="input-dark w-full resize-none font-mono text-sm"
  style={{ lineHeight: 1.6 }}
  />
@@ -272,21 +278,30 @@ export default function GeneratePage() {
  {/* Optional notes */}
  <button
  onClick={() => setShowNotes(!showNotes)}
+ aria-expanded={showNotes}
+ aria-controls="essay-specific-notes"
  className="mt-4 flex items-center gap-1.5 text-xs font-medium transition-colors"
  style={{ color: "var(--text-2)" }}
  >
  <PenLine className="w-3.5 h-3.5" />
- Anything specific you want in this essay? (optional)
+ {needsEssayMaterial ? "Add one real detail for this essay" : "Anything specific you want in this essay? (optional)"}
  <ChevronDown className="w-3.5 h-3.5" style={{ transform: showNotes ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
  </button>
  {showNotes && (
+ <>
+ <label htmlFor="essay-specific-notes" className="sr-only">Real experience details for this essay</label>
  <textarea
+ id="essay-specific-notes"
+ ref={notesRef}
  value={extraNotes}
  onChange={(e) => setExtraNotes(e.target.value)}
  rows={3}
- placeholder="A memory, a person, a detail you want woven in, anything you'd tell a friend who was helping you write this."
+ placeholder={needsEssayMaterial
+  ? "Describe one specific experience and the part you played. Include a concrete detail about what changed."
+  : "A memory, a person, a detail you want woven in, anything you'd tell a friend who was helping you write this."}
  className="input-dark w-full resize-none text-sm mt-2"
  />
+ </>
  )}
 
  {/* Voice & tone */}
@@ -311,7 +326,7 @@ export default function GeneratePage() {
  className="btn-gold flex items-center gap-2 px-6 py-3 text-sm font-bold disabled:opacity-50"
  >
  {generating ? (
- <><Loader2 className="w-4 h-4 animate-spin" /> Writing…</>
+ <><Loader2 className="w-4 h-4 animate-spin" /> Writing...</>
  ) : (
  <><Sparkles className="w-4 h-4" /> Write My Essay</>
  )}
@@ -325,12 +340,12 @@ export default function GeneratePage() {
  </div>
  )}
 
- {quota && !generating && (
- <p className="text-xs mt-3 text-right" style={{ color: quota.remaining !== null && quota.remaining <= 1 ? "var(--gold)" : "var(--text-3)" }}>
- {quota.remaining === null
+ {displayedQuota && !generating && (
+ <p className="text-xs mt-3 text-right" style={{ color: displayedQuota.remaining !== null && displayedQuota.remaining <= 1 ? "var(--gold)" : "var(--text-3)" }}>
+ {displayedQuota.remaining === null
  ? "Audri Pro, unlimited essays"
- : `${quota.remaining} free ${quota.remaining === 1 ? "essay" : "essays"} left · `}
- {quota.remaining !== null && (
+ : `${displayedQuota.remaining} of 2 free ${displayedQuota.remaining === 1 ? "essay" : "essays"} left / `}
+ {displayedQuota.remaining !== null && (
  <Link href="/upgrade" className="font-semibold hover:underline" style={{ color: "var(--gold)" }}>Go unlimited</Link>
  )}
  </p>
@@ -341,11 +356,10 @@ export default function GeneratePage() {
  {paywalled && !generating && (
  <div className="rounded-2xl p-8 text-center" style={{ background: "var(--gold-10)", border: "1px solid var(--gold-25)", boxShadow: "0 0 60px var(--gold-10)" }}>
  <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
- You&apos;ve used your free essays, <span className="text-gradient">and that&apos;s a good sign.</span>
+ You&apos;ve used your 2 free essays.
  </h2>
  <p className="text-sm max-w-md mx-auto mb-5" style={{ color: "var(--text-2)", lineHeight: 1.7 }}>
- You&apos;re applying. That already puts you ahead of most students. Go unlimited and keep
- the momentum, one win pays for years of Audri Pro.
+ Upgrade when you want Audri to keep drafting from your real profile for every scholarship you choose.
  </p>
  <Link href="/upgrade" className="btn-gold inline-flex items-center gap-2 px-8 py-3.5 text-sm font-bold glow-pulse">
  <Sparkles className="w-4 h-4" /> Upgrade to Audri Pro, $9/mo

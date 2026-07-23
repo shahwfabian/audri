@@ -10,7 +10,7 @@ const PRO_FEATURES = [
  "Funder research on every essay",
  "Unlimited rewrites",
  "Recommendation letter drafts",
- "Priority access to new features",
+ "Billing through Stripe Checkout",
 ];
 
 export default function UpgradePage() {
@@ -61,11 +61,11 @@ export default function UpgradePage() {
      <Crown className="w-3.5 h-3.5" /> Audri Pro
     </div>
     <h1 className="text-3xl font-bold" style={{ color: "var(--text)" }}>
-     {isPro ? <>Your <span className="text-gradient">Pro plan</span> is active.</> : <>Apply without an <span className="text-gradient">essay cap.</span></>}
+     {isPro ? <>Your Pro plan is active.</> : <>Keep writing after your 2 free essays.</>}
     </h1>
     {!isPro && (
      <p className="text-sm mt-3 max-w-md mx-auto" style={{ color: "var(--text-2)", lineHeight: 1.7 }}>
-      Keep every eligible scholarship in reach with unlimited essay generation.
+      Start with 2 essays free. Upgrade when Audri has proved it belongs in your scholarship routine.
      </p>
     )}
    </div>
@@ -77,7 +77,7 @@ export default function UpgradePage() {
        <span className="text-5xl font-bold text-gradient">$9</span>
        <span className="text-sm" style={{ color: "var(--text-2)" }}>/month</span>
       </div>
-      <p className="text-xs mt-2" style={{ color: "var(--text-3)" }}>Cancel from your billing settings.</p>
+      <p className="text-xs mt-2" style={{ color: "var(--text-3)" }}>Checkout and billing are handled by Stripe.</p>
      </div>
      <div className="p-8 space-y-3">
       {PRO_FEATURES.map((feature) => (

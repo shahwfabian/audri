@@ -8,10 +8,10 @@ import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
 
 const benefits = [
- "Build your scholarship profile once, apply everywhere",
- "Paste any scholarship, get instant eligibility analysis",
+ "Build one scholarship profile",
+ "Paste scholarship details for analysis",
  "Generate tailored essays from your real stories",
- "Track every deadline from one command center",
+ "Track deadlines in one place",
 ];
 
 export default function SignupPage() {
@@ -81,7 +81,7 @@ export default function SignupPage() {
  <span className="text-gradient">operating system.</span>
  </h2>
  <p className="text-base leading-relaxed mb-10" style={{ color: "var(--text-2)" }}>
- Stop rewriting essays, missing deadlines, and searching through scholarships that don&apos;t fit you.
+ Start with 2 free essays. No card required.
  </p>
 
  <div className="space-y-4">
@@ -111,14 +111,15 @@ export default function SignupPage() {
  </div>
 
  <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--text)" }}>Create your account</h1>
- <p className="text-sm mb-8" style={{ color: "var(--text-2)" }}>Free to start. A guided setup helps you build your scholarship profile.</p>
+ <p className="text-sm mb-8" style={{ color: "var(--text-2)" }}>Start with 2 free essays. A guided setup helps you build your scholarship profile.</p>
 
  <form onSubmit={handleSubmit} className="space-y-4">
  <div>
- <label className="block text-xs font-medium mb-2 uppercase tracking-wider" style={{ color: "var(--text-2)" }}>Full Name</label>
+ <label htmlFor="signup-name" className="block text-xs font-medium mb-2 uppercase tracking-wider" style={{ color: "var(--text-2)" }}>Full Name</label>
  <div className="relative">
  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-3)" }} />
  <input
+ id="signup-name"
  type="text"
  value={name}
  onChange={(e) => setName(e.target.value)}
@@ -130,14 +131,15 @@ export default function SignupPage() {
  </div>
 
  <div>
- <label className="block text-xs font-medium mb-2 uppercase tracking-wider" style={{ color: "var(--text-2)" }}>Email Address</label>
+ <label htmlFor="signup-email" className="block text-xs font-medium mb-2 uppercase tracking-wider" style={{ color: "var(--text-2)" }}>Email Address</label>
  <div className="relative">
  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-3)" }} />
  <input
+ id="signup-email"
  type="email"
  value={email}
  onChange={(e) => setEmail(e.target.value)}
- placeholder="you@gmail.com, Gmail, Yahoo, school email, anything works"
+ placeholder="you@gmail.com"
  className="input-dark w-full pl-10 pr-4 py-3 text-sm"
  required
  />
@@ -148,10 +150,11 @@ export default function SignupPage() {
  </div>
 
  <div>
- <label className="block text-xs font-medium mb-2 uppercase tracking-wider" style={{ color: "var(--text-2)" }}>Password</label>
+ <label htmlFor="signup-password" className="block text-xs font-medium mb-2 uppercase tracking-wider" style={{ color: "var(--text-2)" }}>Password</label>
  <div className="relative">
  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-3)" }} />
  <input
+ id="signup-password"
  type="password"
  value={password}
  onChange={(e) => setPassword(e.target.value)}

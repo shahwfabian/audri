@@ -36,6 +36,7 @@ const ERROR_MAP: Record<string, string> = {
  // Input
  "too short": "Please paste more text, we need the full scholarship description.",
  "not a scholarship": "This doesn't look like a scholarship. Paste the full text from a scholarship page.",
+ "add one real detail": "Add one real detail from your life before writing. Describe a specific moment or responsibility in the notes box.",
 };
 
 /**
@@ -78,25 +79,28 @@ export async function safeApiResponse<T>(res: Response): Promise<{
  data: T | null;
  error: string | null;
  status: number;
+ code: "PROFILE_NEEDS_ESSAY_MATERIAL" | null;
 }> {
  const status = res.status;
  if (res.ok) {
  try {
  const data = (await res.json()) as T;
- return { data, error: null, status };
+ return { data, error: null, status, code: null };
  } catch {
- return { data: null, error: "Invalid response from server.", status };
+ return { data: null, error: "Invalid response from server.", status, code: null };
  }
  }
 
  // Don't expose raw server error bodies to UI
  let errorMsg = "Something went wrong. Please try again.";
+ let code: "PROFILE_NEEDS_ESSAY_MATERIAL" | null = null;
  try {
  const body = await res.json();
  if (body?.error) errorMsg = friendlyError(body.error);
+ if (body?.code === "PROFILE_NEEDS_ESSAY_MATERIAL") code = body.code;
  } catch {
  errorMsg = friendlyError(`${status}`);
  }
 
- return { data: null, error: errorMsg, status };
+ return { data: null, error: errorMsg, status, code };
 }

@@ -19,6 +19,7 @@ let stripeModule: typeof import("../lib/billing/stripe");
 let usersModule: typeof import("../lib/auth/users");
 let checkoutRoute: typeof import("../app/api/billing/checkout/route");
 let portalRoute: typeof import("../app/api/billing/portal/route");
+let activateRoute: typeof import("../app/api/billing/activate/route");
 let webhookRoute: typeof import("../app/api/billing/webhook/route");
 
 before(async () => {
@@ -27,6 +28,7 @@ before(async () => {
  usersModule = await import("../lib/auth/users");
  checkoutRoute = await import("../app/api/billing/checkout/route");
  portalRoute = await import("../app/api/billing/portal/route");
+ activateRoute = await import("../app/api/billing/activate/route");
  webhookRoute = await import("../app/api/billing/webhook/route");
 });
 
@@ -284,4 +286,28 @@ test("billing portal uses the stored customer and rejects accounts without one",
   headers: { Authorization: `Bearer ${withoutBilling.user.token}` },
  }));
  assert.equal(missingResponse.status, 409);
+});
+
+test("billing status refresh uses the signed account without manual activation", async () => {
+ const created = await usersModule.createUser(
+  "status-refresh@example.com",
+  "Status Refresh",
+  "strong-password",
+  true
+ );
+ assert.ok(created.user?.token);
+ await usersModule.setSubscription(created.user.email, {
+  plan: "pro",
+  customerId: "cus_status_refresh_test",
+  subscriptionId: "sub_status_refresh_test",
+  status: "active",
+ });
+
+ const response = await activateRoute.GET(new NextRequest("http://localhost/api/billing/activate", {
+  headers: { Authorization: `Bearer ${created.user.token}` },
+ }));
+ assert.equal(response.status, 200);
+ const body = await response.json();
+ assert.equal(body.user.plan, "pro");
+ assert.equal(body.user.essaysRemaining, null);
 });

@@ -9,7 +9,7 @@ const USERS_PATH = path.join(process.cwd(), "data", USERS_FILE);
 const TERMS_VERSION = "2026-07-13";
 const PENDING_SIGNUP_TTL_MS = 30 * 60_000;
 
-export const FREE_ESSAY_LIMIT = Math.max(1, parseInt(process.env.AUDRI_FREE_ESSAYS ?? "3", 10) || 3);
+export const FREE_ESSAY_LIMIT = Math.max(1, parseInt(process.env.AUDRI_FREE_ESSAYS ?? "2", 10) || 2);
 
 export interface StoredUser {
  id: string;
