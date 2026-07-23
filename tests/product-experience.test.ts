@@ -122,3 +122,19 @@ test("signed-in navigation becomes an overlay below the desktop breakpoint", () 
  assert.match(layout, /className="min-w-0 flex-1 overflow-y-auto"/);
  assert.match(layout, /onNavigate=\{\(\) => setMobileNavOpen\(false\)\}/);
 });
+
+test("scholarship search removes no-essay positioning and ranks fit", () => {
+ const page = read("app/(dashboard)/scholarships/search/page.tsx");
+ const route = read("app/api/scholarships/route.ts");
+ assert.doesNotMatch(page, /"No Essay"|No essay/);
+ assert.match(page, /rankScholarship/);
+ assert.match(page, /Matched on/);
+ assert.match(route, /filterSeriousScholarships/);
+});
+
+test("tone picker defaults to featured voices before the full catalogue", () => {
+ const picker = read("components/TonePicker.tsx");
+ assert.match(picker, /Featured voices/);
+ assert.match(picker, /Open full voice catalogue/);
+ assert.doesNotMatch(picker, /1,440 voices|TONE_COUNT\.toLocaleString\(\) voices/);
+});

@@ -14,6 +14,7 @@ import { scrapeFastweb } from "./fastweb";
 import { scrapeHow2Win } from "./how2win";
 import { SEED_SCHOLARSHIPS } from "./seed";
 import { LOCAL_SCHOLARSHIPS, PLATFORM_SCHOLARSHIPS } from "./local";
+import { filterSeriousScholarships } from "@/lib/scholarships/quality";
 import type { ScrapedScholarship, ScholarshipDatabase } from "./types";
 
 const DB_PATH = path.join(process.cwd(), "data", "scholarships.json");
@@ -35,7 +36,7 @@ export function readScholarshipDB(): ScholarshipDatabase {
  }
  // Merge the built-in layers on every read so all 50 states are always covered
  const storedIds = new Set(stored.map((s) => s.id));
- const merged = [...stored, ...BUILT_IN_SCHOLARSHIPS.filter((s) => !storedIds.has(s.id))];
+ const merged = filterSeriousScholarships([...stored, ...BUILT_IN_SCHOLARSHIPS.filter((s) => !storedIds.has(s.id))]);
  return {
  lastUpdated: storedUpdatedAt ?? "1970-01-01T00:00:00.000Z",
  totalCount: merged.length,
@@ -91,6 +92,17 @@ export async function runScraper(source: ScrapeSource = "all"): Promise<{
  const errors: string[] = [];
  const collected: ScrapedScholarship[] = [];
 
+ if (source !== "all" && source !== "seed-only") {
+  const refreshingSource = source === "fastweb" ? "fastweb.com"
+   : source === "how2win" ? "how2winscholarships.com"
+   : source === "scholarships-com" ? "scholarships.com"
+   : null;
+  if (refreshingSource) {
+   const existing = readScholarshipDB().scholarships.filter((item) => item.source !== refreshingSource && item.source !== "seed");
+   collected.push(...existing);
+  }
+ }
+
  // Always start with seed data
  collected.push(...SEED_SCHOLARSHIPS);
  console.log(` 🌱 Seed database: ${SEED_SCHOLARSHIPS.length} scholarships`);
@@ -128,7 +140,7 @@ export async function runScraper(source: ScrapeSource = "all"): Promise<{
  }
  }
 
- const deduped = deduplicateByName(collected);
+ const deduped = deduplicateByName(filterSeriousScholarships(collected));
  writeScholarshipDB(deduped);
 
  console.log(`\n✅ Complete: ${deduped.length} scholarships saved to data/scholarships.json`);
@@ -141,7 +153,7 @@ export async function runScraper(source: ScrapeSource = "all"): Promise<{
 export function initSeedDB(): void {
  const existing = readScholarshipDB();
  if (existing.totalCount > 0) return; // Already initialized
- const deduped = deduplicateByName(SEED_SCHOLARSHIPS);
+ const deduped = deduplicateByName(filterSeriousScholarships(SEED_SCHOLARSHIPS));
  writeScholarshipDB(deduped);
  console.log(` 🌱 Initialized scholarship database with ${deduped.length} seed scholarships.`);
 }
@@ -157,7 +169,7 @@ export function searchScholarships(params: {
  offset?: number;
 }): { scholarships: ScrapedScholarship[]; total: number } {
  const db = readScholarshipDB();
- let results = db.scholarships;
+ let results = filterSeriousScholarships(db.scholarships);
 
  if (params.query) {
  const q = params.query.toLowerCase();
