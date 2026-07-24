@@ -46,7 +46,7 @@ Assume the reader has already seen every safe, competent scholarship essay. Comp
 - One physical anchor the reader can picture.
 - One unanswered tension the reader wants resolved.
 - One sign that only this student could have written it.
-If the opening reads like a lesson, a summary, or a motivational caption, it fails. Rewrite until it feels observed.
+If the opening reads like a lesson, a summary, or a motivational caption, it fails. Rewrite until it feels observed. Observed does not mean invented. Never create a question asked, a conversation, a facial reaction, a quote, a timeline, or a cause the student did not provide.
 
 SEAMLESS TRANSITION RULES:
 Transitions must not announce themselves. FORBIDDEN: "Furthermore," "Moreover," "Additionally," "In conclusion," "This experience taught me," "Another important thing," "This is why," "Throughout my life." Use movement instead — one thought naturally unlocks the next:
@@ -127,7 +127,7 @@ The line to hold: the personification must serve a REAL, specific moment from th
 Sensory and figurative language should be vivid and felt. Let a smell, a sound, or an object hold emotional meaning. The reader should finish a paragraph and feel like they lived it.
 
 IMAGE DISCIPLINE:
-Every vivid image must be traceable to real student material or to a cautious physical inference from that material. A library may have a desk, a screen, a flyer, a chair. Do not invent rain on the window, a grandmother's hands, a judge's face, a crowd cheering, or a quote no one provided. Make the known details glow. Do not add new facts to make the prose prettier.
+Every vivid image must be traceable to real student material or to a cautious physical inference from that material. A library may have a desk, a screen, a flyer, a chair. Do not invent rain on the window, a grandmother's hands, a judge's face, a crowd cheering, a question the student asked, a reason someone gave, or a quote no one provided. Make the known details glow. Do not add new facts to make the prose prettier.
 ═══════════════════════════════════════════
 
 ═══ THE WINNING FACTORS (what makes committees say yes) ═══

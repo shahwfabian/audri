@@ -26,6 +26,8 @@ export const essayAutoresearchFixtures: EssayEvalFixture[] = [
       "raised $10000",
       "full ride",
       "doctor",
+      "asked why",
+      "she told me",
     ],
     essay:
       "The cardboard flaps fought back each Saturday morning while I packed pantry boxes beside my mother. I learned the route by sound: canned beans sliding left, rice landing soft, my pen scratching names onto intake forms. When a neighbor hesitated over the English form, I translated the questions and watched her shoulders drop. That small breath is why I want community college nursing. Local service taught me that health careers begin before the clinic door, in the moment someone feels safe enough to ask for help. This scholarship would keep me moving toward that work while I keep showing up where my neighborhood already knows my name.",

@@ -119,7 +119,7 @@ export async function generateEssayStrategy(
 ): Promise<EssayStrategyResult> {
   const prompt = `Build the winning strategy for this essay BEFORE any writing happens. Think like the Tanabe workshop and the strictest scholarship committee in the room: find the angle that passes the Thumb Test, pick ONE scene, run the "but why?" chain, and define the growth arc.
 
-Committee standard: the first 10 seconds decide whether the reader leans in. Locate the live object, sound, gesture, or pressure point that makes the opening feel witnessed instead of summarized. Vivid writing is required, but every image must come from provided student material or a cautious physical inference from that material. Do not invent new events, people, awards, dialogue, settings, or outcomes.
+Committee standard: the first 10 seconds decide whether the reader leans in. Locate the live object, sound, gesture, or pressure point that makes the opening feel witnessed instead of summarized. Vivid writing is required, but every image must come from provided student material or a cautious physical inference from that material. Do not invent new events, people, awards, dialogue, questions asked, conversations, reactions, settings, timelines, or outcomes.
 
 SCHOLARSHIP: ${input.scholarshipName}
 ${input.scholarshipMission ? `WHAT THE FUNDER VALUES: ${input.scholarshipMission}` : ""}
@@ -194,7 +194,7 @@ ${buildStudentDossier(input)}
 
 AWARD COMMITTEE STANDARD: write as if the first reader has 200 essays left and one hand already moving toward the next file. The opening must create pressure in the room within two sentences. A strong hook has at least one concrete image plus one unanswered tension. If the opening can be copied into another student's essay, rewrite it.
 
-VIVIDNESS STANDARD: every major paragraph needs one grounded physical anchor: an object, sound, gesture, place, texture, screen, paper, doorway, table, uniform, clock, or tool from the student's real material. Use the safe image ledger first. Personification is welcome only when anchored to the scene. No decorative fog. No invented dialogue. No invented weather. No invented family facts.
+VIVIDNESS STANDARD: every major paragraph needs one grounded physical anchor: an object, sound, gesture, place, texture, screen, paper, doorway, table, uniform, clock, or tool from the student's real material. Use the safe image ledger first. Personification is welcome only when anchored to the scene. No decorative fog. No invented dialogue. No invented questions asked. No invented reactions. No invented weather. No invented family facts.
 
 PARAGRAPH RHYTHM: break on emotional pressure, not structure. Vary lengths — a one-sentence paragraph when a realization lands; longer ones to build a scene. No five equal blocks. Transitions must be invisible movement ("The harder part came later."), never academic connectors.
 
@@ -215,6 +215,7 @@ FINAL NARRATIVE AUDIT — run every question before you output; if any answer is
 14. Does the reader feel they are investing in a rising student, not rescuing a hardship case?
 15. Is it under the word limit with every question in the prompt answered?
 16. HOUSE STYLE: zero em dashes anywhere, and zero three-item lists / tricolons. If either appears, rewrite before returning.
+17. FACTUAL TRUST: remove any sentence that creates a new interaction, question, quote, reaction, timeline, or outcome not present in the student's material.
 
 If the real material is thin for this exact prompt, still write the strongest honest essay draft possible. Use only known facts. Put missing personal facts in clear brackets like [specific job], [one moment this system failed you], or [person you helped]. Never stop to advise the student. Never list what you need. Never explain that you cannot fabricate.
 
