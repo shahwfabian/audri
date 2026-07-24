@@ -3,6 +3,7 @@ import * as path from "path";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { decryptJSON, encryptJSON, issueSession } from "./crypto";
 import { assertProductionDatabase, getAdminDatabase } from "@/lib/db/admin";
+import { DEFAULT_BILLING_PLAN_ID, getBillingPlan, type BillingPlanId } from "@/lib/billing/plans";
 
 const USERS_FILE = process.env.AUDRI_USERS_FILE ? path.basename(process.env.AUDRI_USERS_FILE) : "users.json";
 const USERS_PATH = path.join(process.cwd(), "data", USERS_FILE);
@@ -18,8 +19,11 @@ export interface StoredUser {
  name: string;
  passwordHash: string;
  plan: "free" | "pro";
+ billingPlan?: BillingPlanId | null;
  essaysGenerated: number;
  quotaWindowStartedAt?: string;
+ paidEssaysGenerated?: number;
+ paidQuotaWindowStartedAt?: string;
  createdAt: string;
  upgradedAt?: string;
  proExpiresAt?: string;
@@ -41,6 +45,7 @@ export interface PublicUser {
  email: string;
  name: string;
  plan: "free" | "pro";
+ billingPlan?: BillingPlanId | null;
  essaysGenerated: number;
  essaysRemaining: number | null;
  createdAt: string;
@@ -53,8 +58,11 @@ type DatabaseRow = {
  name: string;
  password_hash: string;
  plan: "free" | "pro";
+ billing_plan?: BillingPlanId | null;
  essays_generated: number;
  quota_window_started_at?: string | null;
+ paid_essays_generated?: number | null;
+ paid_quota_window_started_at?: string | null;
  created_at: string;
  upgraded_at?: string | null;
  pro_expires_at?: string | null;
@@ -90,8 +98,11 @@ function fromDatabase(row: DatabaseRow): StoredUser {
   name: row.name,
   passwordHash: row.password_hash,
   plan: row.plan,
+  billingPlan: row.billing_plan ?? null,
   essaysGenerated: row.essays_generated,
   quotaWindowStartedAt: row.quota_window_started_at ?? row.created_at,
+  paidEssaysGenerated: row.paid_essays_generated ?? 0,
+  paidQuotaWindowStartedAt: row.paid_quota_window_started_at ?? row.upgraded_at ?? row.created_at,
   createdAt: row.created_at,
   upgradedAt: row.upgraded_at ?? undefined,
   proExpiresAt: row.pro_expires_at ?? undefined,
@@ -194,6 +205,20 @@ function hasPaidAccess(user: StoredUser, now = Date.now()): boolean {
  return Number.isFinite(expires) && expires > now;
 }
 
+function monthlyUsage(user: StoredUser, now = Date.now()): { used: number; windowStartedAt: string } {
+ const startedAt = user.paidQuotaWindowStartedAt ?? user.upgradedAt ?? user.createdAt;
+ const started = Date.parse(startedAt);
+ const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+ if (!Number.isFinite(started) || now - started >= thirtyDays) {
+  return { used: 0, windowStartedAt: new Date(now).toISOString() };
+ }
+ return { used: user.paidEssaysGenerated ?? 0, windowStartedAt: startedAt };
+}
+
+function activeBillingPlan(user: StoredUser): BillingPlanId {
+ return user.billingPlan ?? DEFAULT_BILLING_PLAN_ID;
+}
+
 export function toPublic(user: StoredUser, withToken = false): PublicUser {
  const paid = hasPaidAccess(user);
  const usage = weeklyUsage(user);
@@ -202,6 +227,7 @@ export function toPublic(user: StoredUser, withToken = false): PublicUser {
   email: user.email,
   name: user.name,
   plan: paid ? "pro" : "free",
+  billingPlan: paid ? activeBillingPlan(user) : null,
   essaysGenerated: usage.used,
   essaysRemaining: paid ? null : Math.max(0, FREE_ESSAY_LIMIT - usage.used),
   createdAt: user.createdAt,
@@ -405,13 +431,19 @@ export async function reserveEssay(email: string): Promise<{ allowed: boolean; u
  return updateLocal((users) => {
   const user = users.find((candidate) => candidate.email === normalize(email));
   if (!user) return { allowed: false, user: null };
-  if (!hasPaidAccess(user)) {
+  if (hasPaidAccess(user)) {
+   const plan = getBillingPlan(activeBillingPlan(user));
+   const usage = monthlyUsage(user);
+   if (usage.used >= plan.monthlyEssayLimit) return { allowed: false, user: toPublic(user) };
+   user.paidEssaysGenerated = usage.used + 1;
+   user.paidQuotaWindowStartedAt = usage.windowStartedAt;
+  } else {
    const usage = weeklyUsage(user);
    if (usage.used >= FREE_ESSAY_LIMIT) return { allowed: false, user: toPublic(user) };
    user.essaysGenerated = usage.used;
    user.quotaWindowStartedAt = usage.windowStartedAt;
+   user.essaysGenerated += 1;
   }
-  user.essaysGenerated += 1;
   return { allowed: true, user: toPublic(user) };
  });
 }
@@ -425,8 +457,13 @@ export async function releaseEssayReservation(email: string): Promise<void> {
  }
  assertProductionDatabase();
  await updateLocal((users) => {
-  const user = users.find((candidate) => candidate.email === normalize(email));
-  if (user && user.essaysGenerated > 0) user.essaysGenerated -= 1;
+ const user = users.find((candidate) => candidate.email === normalize(email));
+  if (!user) return;
+  if (hasPaidAccess(user) && (user.paidEssaysGenerated ?? 0) > 0) {
+   user.paidEssaysGenerated = (user.paidEssaysGenerated ?? 0) - 1;
+  } else if (user.essaysGenerated > 0) {
+   user.essaysGenerated -= 1;
+  }
  });
 }
 
@@ -468,6 +505,7 @@ export async function getUserWorkspace(email: string): Promise<unknown | null> {
 
 export async function setSubscription(email: string, details: {
  plan: "free" | "pro";
+ billingPlan?: BillingPlanId | null;
  customerId?: string | null;
  subscriptionId?: string | null;
  status?: string | null;
@@ -478,6 +516,7 @@ export async function setSubscription(email: string, details: {
  if (database) {
   const { data, error } = await database.from("audri_users").update({
    plan: details.plan,
+   billing_plan: details.billingPlan,
    stripe_customer_id: details.customerId,
    stripe_subscription_id: details.subscriptionId,
    subscription_status: details.status,
@@ -493,6 +532,7 @@ export async function setSubscription(email: string, details: {
   const user = users.find((candidate) => candidate.email === normalize(email));
   if (!user) return null;
   user.plan = details.plan;
+  user.billingPlan = details.billingPlan ?? null;
   user.stripeCustomerId = details.customerId ?? undefined;
   user.stripeSubscriptionId = details.subscriptionId ?? undefined;
   user.subscriptionStatus = details.status ?? undefined;

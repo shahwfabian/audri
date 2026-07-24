@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     metadata: { audri_user_id: user.id, audri_email: user.email },
    });
    customerId = customer.id;
-   await setSubscription(user.email, { plan: user.plan, customerId, status: user.subscriptionStatus });
+   await setSubscription(user.email, { plan: user.plan, billingPlan: user.billingPlan ?? null, customerId, status: user.subscriptionStatus });
   }
 
   const origin = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;

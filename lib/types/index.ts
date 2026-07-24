@@ -10,8 +10,9 @@ export interface User {
  createdAt: string;
  /** Billing plan, "free" until upgraded through the paywall */
  plan?: "free" | "pro";
- /** Free essays left; null = unlimited (pro) */
+ /** Essays left in the current visible quota window; null = paid access */
  essaysRemaining?: number | null;
+ billingPlan?: "student" | "power" | "sprint" | null;
  /** Signed session token proving identity to protected endpoints */
  token?: string;
 }

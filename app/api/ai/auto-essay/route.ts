@@ -45,10 +45,11 @@ export async function POST(req: NextRequest) {
  // Identity comes from the signed session so quota is strictly per-account.
  const userEmail = auth.session.email;
  const quota = await checkEssayQuota(userEmail);
+ const usagePlan = quota.plan;
  if (!quota.allowed) {
  return NextResponse.json(
  {
- error: `You've used this week's ${FREE_ESSAY_LIMIT} free essays. Upgrade for unlimited essays.`,
+ error: `You've used this week's ${FREE_ESSAY_LIMIT} free essays. Upgrade for more essay access.`,
  paywall: true,
  plan: quota.plan,
  remaining: 0,
@@ -93,9 +94,16 @@ export async function POST(req: NextRequest) {
 
  const reservation = await reserveEssay(userEmail);
  if (!reservation.allowed) {
+ const paidLimit = reservation.user?.plan === "pro";
  return NextResponse.json(
- { error: `You've used this week's ${FREE_ESSAY_LIMIT} free essays. Upgrade for unlimited essays.`, paywall: true, remaining: 0 },
- { status: 402 }
+ {
+ error: paidLimit
+ ? "You've reached this plan's monthly fair-use limit. Try again when your usage window resets."
+ : `You've used this week's ${FREE_ESSAY_LIMIT} free essays. Upgrade for more essay access.`,
+ paywall: !paidLimit,
+ remaining: 0,
+ },
+ { status: paidLimit ? 429 : 402 }
  );
  }
  reservedFor = userEmail;
@@ -129,7 +137,14 @@ Cover, in short labeled lines:
 RAW WEBSITE TEXT:
 ${funderBackground}`,
  "You are a research analyst distilling an organization's public website into a brief for essay mission-alignment. Be concrete and skeptical, extract what they demonstrably value, not marketing fluff.",
- { maxTokens: 700 }
+ {
+  maxTokens: 700,
+  route: "auto-essay",
+  phase: "funder-brief",
+  userEmail,
+  plan: usagePlan,
+  model: "fast",
+ }
  );
  } catch {
  funderIntelligence = undefined; // research is a bonus, never block the essay on it
@@ -164,6 +179,7 @@ ${funderBackground}`,
  funderIntelligence,
  extraNotes: extraNotes?.trim() || undefined,
  toneDirective: getToneDirective(toneId),
+ telemetry: { route: "auto-essay", userEmail, plan: usagePlan },
  };
 
  const strategy = await generateEssayStrategy(input);

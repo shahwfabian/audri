@@ -147,7 +147,7 @@ export default function GeneratePage() {
 
  if (res.status === 402) {
  setPaywalled(true);
- toast.error("You've used your free essays, upgrade for unlimited.");
+ toast.error("You've used your free essays. Upgrade for more access.");
  return;
  }
 
@@ -360,10 +360,10 @@ export default function GeneratePage() {
  {displayedQuota && !generating && (
  <p className="text-xs mt-3 text-right" style={{ color: displayedQuota.remaining !== null && displayedQuota.remaining <= 1 ? "var(--gold)" : "var(--text-3)" }}>
  {displayedQuota.remaining === null
- ? "Audri Pro, unlimited essays"
+ ? "Audri Pro access active"
  : `${displayedQuota.remaining} of 2 weekly ${displayedQuota.remaining === 1 ? "essay" : "essays"} left / `}
  {displayedQuota.remaining !== null && (
- <Link href="/upgrade" className="font-semibold hover:underline" style={{ color: "var(--gold)" }}>Go unlimited</Link>
+ <Link href="/upgrade" className="font-semibold hover:underline" style={{ color: "var(--gold)" }}>See plans</Link>
  )}
  </p>
  )}

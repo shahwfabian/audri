@@ -21,6 +21,11 @@ interface EssayGenerationInput {
   extraNotes?: string;
   /** Selected voice/tone directive from the 1,440-voice library */
   toneDirective?: string;
+  telemetry?: {
+    route: string;
+    userEmail?: string;
+    plan?: string;
+  };
 }
 
 interface EssayStrategyResult {
@@ -141,6 +146,10 @@ Return JSON:
 
   return callAIJSON<EssayStrategyResult>(prompt, SYSTEM_PROMPTS.ESSAY_WRITER, {
     maxTokens: 2048,
+    route: input.telemetry?.route,
+    phase: "essay-strategy",
+    userEmail: input.telemetry?.userEmail,
+    plan: input.telemetry?.plan,
   });
 }
 
@@ -199,6 +208,10 @@ Output ONLY the essay text. No title, no labels, no preamble.`;
 
   const draft = await callAI(prompt, SYSTEM_PROMPTS.ESSAY_WRITER, {
     maxTokens: 3000,
+    route: input.telemetry?.route,
+    phase: "essay-draft",
+    userEmail: input.telemetry?.userEmail,
+    plan: input.telemetry?.plan,
   });
   let polished = enforceHouseStyle(draft);
   if (polished.trim() === "AUDRI_NEEDS_MORE_STUDENT_DETAIL" || isNonEssayResponse(polished)) {
@@ -222,7 +235,13 @@ ${buildStudentDossier(input)}
 BAD RESPONSE TO REPAIR:
 ${draft}`,
       SYSTEM_PROMPTS.ESSAY_WRITER,
-      { maxTokens: 3000 }
+      {
+        maxTokens: 3000,
+        route: input.telemetry?.route,
+        phase: "essay-draft-repair",
+        userEmail: input.telemetry?.userEmail,
+        plan: input.telemetry?.plan,
+      }
     ));
     if (polished.trim() === "AUDRI_NEEDS_MORE_STUDENT_DETAIL" || isNonEssayResponse(polished)) {
       return sparseEssayFallback(input, target);
@@ -232,7 +251,13 @@ ${draft}`,
     polished = enforceHouseStyle(await callAI(
       "Shorten the essay below to no more than " + target + " words. Preserve every factual detail. Keep the student's voice. Output only the revised essay.\n\n" + polished,
       SYSTEM_PROMPTS.ESSAY_WRITER,
-      { maxTokens: 3000 }
+      {
+        maxTokens: 3000,
+        route: input.telemetry?.route,
+        phase: "essay-shorten",
+        userEmail: input.telemetry?.userEmail,
+        plan: input.telemetry?.plan,
+      }
     ));
   }
   return clampToWordLimit(polished, target);

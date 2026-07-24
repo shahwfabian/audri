@@ -26,6 +26,17 @@ test("AI routes never accept a customer-supplied provider credential", () => {
  assert.doesNotMatch(routes, /x-audri-api-key|apiKeyOverride/);
 });
 
+test("AI client records prompt-free usage telemetry", () => {
+ const client = read("lib/ai/client.ts");
+ const usage = read("lib/ai/usage.ts");
+ const migration = read("supabase/migrations/202607230004_plan_budgets_and_ai_usage.sql");
+ assert.match(client, /recordAIUsage/);
+ assert.match(usage, /inputTokens/);
+ assert.match(usage, /outputTokens/);
+ assert.doesNotMatch(usage, /prompt|student text|pastedText/i);
+ assert.match(migration, /create table if not exists public\.audri_ai_usage/);
+});
+
 test("provider failures remain customer-friendly", () => {
  const message = friendlyError(new Error("invalid_api_key: provider authentication failed"));
  assert.match(message, /temporarily unavailable/i);
@@ -90,7 +101,10 @@ test("upgrade page defines the three paid plans", () => {
  assert.match(plans, /id: "student"[\s\S]*price: "\$9"/);
  assert.match(plans, /id: "power"[\s\S]*price: "\$19"/);
  assert.match(plans, /id: "sprint"[\s\S]*price: "\$49"[\s\S]*durationMonths: 4/);
+ assert.match(plans, /monthlyEssayLimit: 30/);
+ assert.match(plans, /monthlyEssayLimit: 100/);
  assert.match(plans, /Four months of Pro access/);
+ assert.doesNotMatch(page + plans, /Unlimited essay|unlimited essays|Go unlimited/i);
 });
 
 test("first session navigation keeps only the core product paths", () => {

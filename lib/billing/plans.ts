@@ -8,6 +8,7 @@ export type BillingPlan = {
  checkoutMode: "subscription" | "payment";
  priceEnv: string;
  legacyPriceEnv?: string;
+ monthlyEssayLimit: number;
  badge?: string;
  durationMonths?: number;
  features: string[];
@@ -22,8 +23,9 @@ export const BILLING_PLANS: BillingPlan[] = [
   checkoutMode: "subscription",
   priceEnv: "STRIPE_STUDENT_PRICE_ID",
   legacyPriceEnv: "STRIPE_PRO_PRICE_ID",
+  monthlyEssayLimit: 30,
   features: [
-   "Unlimited scholarship essay drafts",
+   "Room for steady weekly essay drafting",
    "Funder research on every essay",
    "Saved drafts and rewrite support",
    "Best for steady weekly applications",
@@ -36,10 +38,11 @@ export const BILLING_PLANS: BillingPlan[] = [
   cadence: "month",
   checkoutMode: "subscription",
   priceEnv: "STRIPE_POWER_PRICE_ID",
+  monthlyEssayLimit: 100,
   badge: "For application season",
   features: [
    "Everything in Student",
-   "More aggressive scholarship workflow",
+   "Higher-volume scholarship workflow",
    "Designed for students applying in volume",
    "Best for seniors, transfers, and grad applicants",
   ],
@@ -53,6 +56,7 @@ export const BILLING_PLANS: BillingPlan[] = [
   priceEnv: "STRIPE_SPRINT_PRICE_ID",
   badge: "One season",
   durationMonths: 4,
+  monthlyEssayLimit: 100,
   features: [
    "Four months of Pro access",
    "One payment, no monthly renewal",

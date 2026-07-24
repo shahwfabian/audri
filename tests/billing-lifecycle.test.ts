@@ -190,6 +190,7 @@ test("signed subscription webhooks upgrade, downgrade, and cancel access", async
  assert.equal((await webhookRoute.POST(signedRequest(active))).status, 200);
  let stored = await usersModule.findUser(created.user.email);
  assert.equal(stored?.plan, "pro");
+ assert.equal(stored?.billingPlan, "student");
  assert.equal(stored?.subscriptionStatus, "active");
  assert.equal(stored?.stripeSubscriptionId, "sub_lifecycle_test");
 
@@ -200,6 +201,7 @@ test("signed subscription webhooks upgrade, downgrade, and cancel access", async
  assert.equal((await webhookRoute.POST(signedRequest(pastDue))).status, 200);
  stored = await usersModule.findUser(created.user.email);
  assert.equal(stored?.plan, "free");
+ assert.equal(stored?.billingPlan, null);
  assert.equal(stored?.subscriptionStatus, "past_due");
 
  const canceled = stripeEvent("customer.subscription.deleted", {
@@ -247,6 +249,7 @@ test("checkout completion retrieves and reconciles the subscription", async () =
 
  const stored = await usersModule.findUser(created.user.email);
  assert.equal(stored?.plan, "pro");
+ assert.equal(stored?.billingPlan, "student");
  assert.equal(stored?.subscriptionStatus, "active");
  assert.equal(stored?.stripeSubscriptionId, "sub_completed_test");
 });
@@ -272,6 +275,7 @@ test("sprint checkout grants four months of pro access", async () => {
 
  const stored = await usersModule.findUser("sprint@example.com");
  assert.equal(stored?.plan, "pro");
+ assert.equal(stored?.billingPlan, "sprint");
  assert.equal(stored?.subscriptionStatus, "active");
  assert.ok(stored?.proExpiresAt);
  assert.ok(new Date(stored.proExpiresAt!).getTime() > Date.now() + 100 * 24 * 60 * 60 * 1000);

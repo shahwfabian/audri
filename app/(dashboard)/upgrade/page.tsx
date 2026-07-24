@@ -106,7 +106,7 @@ export default function UpgradePage() {
    {isPro && (
     <div className="rounded-2xl p-6 text-center space-y-4" style={{ background: "var(--gold-10)", border: "1px solid var(--gold-25)" }}>
      <p className="text-sm" style={{ color: "var(--gold-light)" }}>
-      Unlimited essay generation is active for <span className="font-semibold">{user?.email}</span>.
+      Pro essay access is active for <span className="font-semibold">{user?.email}</span>.
      </p>
      <button type="button" onClick={() => openBilling("portal")} disabled={Boolean(billingLoading)} className="btn-secondary inline-flex items-center gap-2 px-5 py-2.5 text-sm">
       {billingLoading === "portal" ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}

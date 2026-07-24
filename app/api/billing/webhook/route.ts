@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe, subscriptionPlan } from "@/lib/billing/stripe";
 import { findUserByStripeCustomer, setSubscription } from "@/lib/auth/users";
-import { sprintExpiry } from "@/lib/billing/plans";
+import { getBillingPlan, sprintExpiry } from "@/lib/billing/plans";
 
 async function reconcileSubscription(subscription: Stripe.Subscription) {
  const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
@@ -11,8 +11,10 @@ async function reconcileSubscription(subscription: Stripe.Subscription) {
  const email = metadataEmail || user?.email;
  if (!email) throw new Error("No Audri account matches Stripe customer " + customerId + ".");
 
+ const plan = subscriptionPlan(subscription.status);
  await setSubscription(email, {
-  plan: subscriptionPlan(subscription.status),
+  plan,
+  billingPlan: plan === "pro" ? getBillingPlan(subscription.metadata.audri_plan).id : null,
   customerId,
   subscriptionId: subscription.id,
   status: subscription.status,
@@ -53,6 +55,7 @@ export async function POST(req: NextRequest) {
     const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
     await setSubscription(email, {
      plan: "pro",
+     billingPlan: getBillingPlan(session.metadata?.audri_plan).id,
      customerId,
      status: "active",
      proExpiresAt: sprintExpiry(),

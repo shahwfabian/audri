@@ -93,6 +93,31 @@ test("free essay quota resets every 7 days", async () => {
  assert.equal(reset.user?.essaysRemaining, 1);
 });
 
+test("paid plans use hidden monthly fair-use budgets", async () => {
+ const created = await usersModule.createUser("student-plan@example.com", "Student Plan", "strong-password", true);
+ assert.ok(created.user?.token);
+ await usersModule.setSubscription("student-plan@example.com", {
+  plan: "pro",
+  billingPlan: "student",
+  status: "active",
+ });
+
+ for (let i = 0; i < 30; i += 1) {
+  assert.equal((await usersModule.reserveEssay("student-plan@example.com")).allowed, true);
+ }
+ assert.equal((await usersModule.reserveEssay("student-plan@example.com")).allowed, false);
+
+ const users = JSON.parse(readFileSync(usersPath, "utf-8")) as Array<Record<string, unknown>>;
+ const paid = users.find((user) => user.email === "student-plan@example.com");
+ assert.ok(paid);
+ paid.paidQuotaWindowStartedAt = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
+ writeFileSync(usersPath, JSON.stringify(users, null, 2), "utf-8");
+
+ const reset = await usersModule.reserveEssay("student-plan@example.com");
+ assert.equal(reset.allowed, true);
+ assert.equal(reset.user?.plan, "pro");
+});
+
 test("essay readiness is advisory instead of a flagship blocker", async () => {
  const created = await usersModule.createUser("essay-readiness@example.com", "Readiness Student", "strong-password", true);
  assert.ok(created.user?.token);
