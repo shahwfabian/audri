@@ -34,6 +34,57 @@ export function enforceHouseStyle(text: string): string {
   return stripDashes(text);
 }
 
+function stripMarkdownFormatting(text: string): string {
+ return text
+  .replace(/\*\*([^*\n]+)\*\*/g, "$1")
+  .replace(/\*([^*\n]+)\*/g, "$1")
+  .replace(/__([^_\n]+)__/g, "$1")
+  .replace(/_([^_\n]+)_/g, "$1")
+  .replace(/`([^`\n]+)`/g, "$1")
+  .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+  .replace(/^\s{0,3}>\s?/gm, "")
+  .replace(/^\s*[-*]\s+/gm, "");
+}
+
+function addReadableParagraphBreaks(text: string): string {
+ const trimmed = text.trim();
+ if (!trimmed || /\n\s*\n/.test(trimmed) || countWords(trimmed) < 220) return trimmed;
+
+ const sentences = trimmed.match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g);
+ if (!sentences || sentences.length < 5) return trimmed;
+
+ const paragraphs: string[] = [];
+ let current: string[] = [];
+ let currentWords = 0;
+
+ for (const rawSentence of sentences) {
+  const sentence = rawSentence.trim();
+  if (!sentence) continue;
+  const sentenceWords = countWords(sentence);
+  current.push(sentence);
+  currentWords += sentenceWords;
+  if (currentWords >= 115 && paragraphs.length < 5) {
+   paragraphs.push(current.join(" "));
+   current = [];
+   currentWords = 0;
+  }
+ }
+
+ if (current.length) paragraphs.push(current.join(" "));
+ return paragraphs.join("\n\n");
+}
+
+/** Make generated essays ready to paste into scholarship portals. */
+export function formatEssayForApplication(text: string): string {
+ if (!text) return text;
+ const plain = stripMarkdownFormatting(enforceHouseStyle(text))
+  .replace(/\r\n/g, "\n")
+  .replace(/[ \t]+\n/g, "\n")
+  .replace(/\n{3,}/g, "\n\n")
+  .trim();
+ return addReadableParagraphBreaks(plain);
+}
+
 export function countWords(text: string): number {
  return text.trim() ? text.trim().split(/\s+/).length : 0;
 }

@@ -2,7 +2,7 @@
 
 import { callAI, callAIJSON } from "@/lib/ai/client";
 import { SYSTEM_PROMPTS } from "@/lib/ai/prompts/system";
-import { clampToWordLimit, countWords, enforceHouseStyle } from "@/lib/ai/style";
+import { clampToWordLimit, countWords, formatEssayForApplication } from "@/lib/ai/style";
 import { isNonEssayResponse } from "@/lib/ai/nonEssayResponse";
 import type { StudentProfile, Story, EssayScores, EssayFeedback } from "@/lib/types";
 
@@ -59,7 +59,7 @@ function sparseEssayFallback(input: EssayGenerationInput, target: number): strin
   const experience = input.extraNotes?.trim() || "[one real moment that shows your work, responsibility, or growth]";
   const scholarship = input.scholarshipName || "this scholarship";
 
-  return clampToWordLimit(enforceHouseStyle(`${student} does not want ${scholarship} to be a line on a financial aid spreadsheet. I want it to become movement: another semester protected and another step toward ${goal}.
+  return clampToWordLimit(formatEssayForApplication(`${student} does not want ${scholarship} to be a line on a financial aid spreadsheet. I want it to become movement: another semester protected and another step toward ${goal}.
 
 At ${school}, I am studying ${major} because I keep returning to the same question: what changes when a person gets the support they need before the door closes? My answer starts with ${experience}. That moment matters because it shows the kind of student I am becoming. I do not move through problems as if they are abstract. I notice where the pressure lands, I look for the part I can carry, and I keep working until the next step becomes possible.
 
@@ -213,9 +213,9 @@ Output ONLY the essay text. No title, no labels, no preamble.`;
     userEmail: input.telemetry?.userEmail,
     plan: input.telemetry?.plan,
   });
-  let polished = enforceHouseStyle(draft);
+  let polished = formatEssayForApplication(draft);
   if (polished.trim() === "AUDRI_NEEDS_MORE_STUDENT_DETAIL" || isNonEssayResponse(polished)) {
-    polished = enforceHouseStyle(await callAI(
+    polished = formatEssayForApplication(await callAI(
       `Rewrite the response below as an actual scholarship essay draft.
 
 Rules:
@@ -248,7 +248,7 @@ ${draft}`,
     }
   }
   if (countWords(polished) > target) {
-    polished = enforceHouseStyle(await callAI(
+    polished = formatEssayForApplication(await callAI(
       "Shorten the essay below to no more than " + target + " words. Preserve every factual detail. Keep the student's voice. Output only the revised essay.\n\n" + polished,
       SYSTEM_PROMPTS.ESSAY_WRITER,
       {
@@ -260,7 +260,7 @@ ${draft}`,
       }
     ));
   }
-  return clampToWordLimit(polished, target);
+  return formatEssayForApplication(clampToWordLimit(polished, target));
 }
 
 interface EssayCritiqueResult {
@@ -335,5 +335,5 @@ HOUSE STYLE (ABSOLUTE): zero em dashes, zero three-item lists / tricolons.
 Output only the revised essay text. No title, no labels, no explanation.`;
 
   const revised = await callAI(prompt, SYSTEM_PROMPTS.ESSAY_WRITER, { maxTokens: 3000 });
-  return clampToWordLimit(enforceHouseStyle(revised), wordLimit);
+  return formatEssayForApplication(clampToWordLimit(revised, wordLimit));
 }

@@ -281,3 +281,13 @@ test("word limit clamp never exceeds the portal limit", () => {
  const clamped = styleModule.clampToWordLimit(text, 75);
  assert.ok(styleModule.countWords(clamped) <= 75);
 });
+
+test("essay formatter removes markdown and rescues one-block drafts", () => {
+ const sentence = "I built the tracker because students were missing deadlines.";
+ const oneBlock = `**${sentence}** ` + Array.from({ length: 28 }, () => sentence).join(" ");
+ const formatted = styleModule.formatEssayForApplication(oneBlock);
+ assert.equal(formatted.includes("**"), false);
+ assert.equal(formatted.includes("*"), false);
+ assert.match(formatted, /\n\n/);
+ assert.ok(styleModule.countWords(formatted) > 220);
+});
