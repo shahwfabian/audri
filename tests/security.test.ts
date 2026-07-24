@@ -17,10 +17,10 @@ let guardsModule: typeof import("../lib/auth/guards");
 let urlModule: typeof import("../lib/scrapers/publicUrl");
 let billingRoute: typeof import("../app/api/billing/activate/route");
 let parseResumeRoute: typeof import("../app/api/ai/parse-resume/route");
-let autoEssayRoute: typeof import("../app/api/ai/auto-essay/route");
 let scrapeRoute: typeof import("../app/api/scholarships/scrape/route");
 let styleModule: typeof import("../lib/ai/style");
 let loginRoute: typeof import("../app/api/auth/login/route");
+let essayReadinessModule: typeof import("../lib/ai/essayReadiness");
 let NextRequest: typeof import("next/server").NextRequest;
 
 before(async () => {
@@ -30,10 +30,10 @@ before(async () => {
  urlModule = await import("../lib/scrapers/publicUrl");
  billingRoute = await import("../app/api/billing/activate/route");
  parseResumeRoute = await import("../app/api/ai/parse-resume/route");
- autoEssayRoute = await import("../app/api/ai/auto-essay/route");
  scrapeRoute = await import("../app/api/scholarships/scrape/route");
  styleModule = await import("../lib/ai/style");
  loginRoute = await import("../app/api/auth/login/route");
+ essayReadinessModule = await import("../lib/ai/essayReadiness");
  ({ NextRequest } = await import("next/server"));
 });
 
@@ -75,31 +75,13 @@ test("quota reservation is bounded and can be rolled back", async () => {
  assert.equal((await usersModule.reserveEssay("quota@example.com")).allowed, true);
 });
 
-test("empty essay material is rejected without spending quota", async () => {
- const created = await usersModule.createUser(
-  "essay-readiness@example.com",
-  "Readiness Student",
-  "strong-password",
-  true
- );
+test("essay readiness is advisory instead of a flagship blocker", async () => {
+ const created = await usersModule.createUser("essay-readiness@example.com", "Readiness Student", "strong-password", true);
  assert.ok(created.user?.token);
  const before = await usersModule.checkEssayQuota("essay-readiness@example.com");
 
- const response = await autoEssayRoute.POST(new NextRequest("http://localhost/api/ai/auto-essay", {
-  method: "POST",
-  headers: {
-   "Content-Type": "application/json",
-   Authorization: `Bearer ${created.user!.token}`,
-  },
-  body: JSON.stringify({
-   pastedText: "A synthetic scholarship description long enough to pass the scholarship text length check.",
-   profile: { achievements: [], stories: [] },
-   stories: [],
-  }),
- }));
+ assert.equal(essayReadinessModule.hasEssayMaterial({ achievements: [], stories: [] }, [], ""), false);
 
- assert.equal(response.status, 422);
- assert.equal((await response.json()).code, "PROFILE_NEEDS_ESSAY_MATERIAL");
  const after = await usersModule.checkEssayQuota("essay-readiness@example.com");
  assert.equal(after.remaining, before.remaining);
 });

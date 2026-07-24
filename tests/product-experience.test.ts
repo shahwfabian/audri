@@ -50,17 +50,21 @@ test("essay generation tolerates partial legacy profiles", () => {
  assert.match(source, /\(p\.achievements \?\? \[\]\)/);
 });
 
-test("students missing essay material get an inline recovery action", () => {
+test("students missing essay material get an inline quality nudge without blocking generation", () => {
  const page = read("app/(dashboard)/generate/page.tsx");
  const route = read("app/api/ai/auto-essay/route.ts");
+ const generator = read("lib/ai/functions/generateEssay.ts");
  assert.match(page, /needsEssayMaterial/);
- assert.match(page, /Add my detail/);
+ assert.match(page, /Want a stronger draft/);
+ assert.match(page, /Audri will draft with clean blanks/);
+ assert.match(page, /Add a detail/);
  assert.match(page, /editor\.focus/);
  assert.match(page, /setSelectionRange/);
  assert.match(page, /aria-controls="essay-specific-notes"/);
  assert.match(page, /htmlFor="essay-specific-notes"/);
- assert.match(route, /ESSAY_MATERIAL_ERROR/);
- assert.ok(route.indexOf("hasEssayMaterial") < route.indexOf("checkEssayQuota(userEmail)"));
+ assert.doesNotMatch(route, /ESSAY_MATERIAL_ERROR|hasEssayMaterial/);
+ assert.match(generator, /Use bracketed fill-ins for missing student facts/);
+ assert.match(generator, /isNonEssayResponse/);
 });
 
 test("first essay flow states the 2 essay allowance without a manual detour", () => {
@@ -72,9 +76,31 @@ test("first essay flow states the 2 essay allowance without a manual detour", ()
  assert.match(signup, /Start with 2 free essays/);
  assert.match(page, /of 2 free/);
  assert.doesNotMatch(page, /Open the Manual/);
+ assert.doesNotMatch(page, /How it works/);
  assert.doesNotMatch(page, /one win pays/i);
  assert.match(users, /AUDRI_FREE_ESSAYS \?\? "2"/);
  assert.match(env, /AUDRI_FREE_ESSAYS=2/);
+});
+
+test("first session navigation keeps only the core product paths", () => {
+ const layout = read("app/(dashboard)/layout.tsx");
+ assert.match(layout, /Essay Generator/);
+ assert.match(layout, /Find Scholarships/);
+ assert.match(layout, /My Profile/);
+ assert.match(layout, /Essays/);
+ assert.match(layout, /Settings/);
+ assert.doesNotMatch(layout, /label: "The Manual"|label: "Dashboard"|label: "Paste & Analyze"|label: "Story Studio"|label: "Story Vault"|label: "Rec Letters"|label: "Gap Analysis"|label: "Resume Builder"/);
+});
+
+test("generator keeps fallback paste and voice controls collapsed", () => {
+ const page = read("app/(dashboard)/generate/page.tsx");
+ assert.match(page, /showPasteFallback/);
+ assert.match(page, /Can&apos;t use a link\? Paste scholarship details instead/);
+ assert.match(page, /showVoiceControls/);
+ assert.match(page, /Adjust voice/);
+ assert.match(page, /aria-controls="scholarship-paste-fallback"/);
+ assert.match(page, /aria-controls="voice-controls"/);
+ assert.doesNotMatch(page, /The entire scholarship page/);
 });
 
 test("onboarding completion points students to the first essay", () => {

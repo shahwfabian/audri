@@ -66,6 +66,8 @@ export default function GeneratePage() {
  const [extraNotes, setExtraNotes] = useState("");
  const [toneId, setToneId] = useState<string>(DEFAULT_TONE_ID);
  const [showNotes, setShowNotes] = useState(false);
+ const [showPasteFallback, setShowPasteFallback] = useState(false);
+ const [showVoiceControls, setShowVoiceControls] = useState(false);
  const [generating, setGenerating] = useState(false);
  const [stage, setStage] = useState(0);
  const [result, setResult] = useState<AutoEssayResult | null>(null);
@@ -77,7 +79,7 @@ export default function GeneratePage() {
  const needsEssayMaterial = !!profile
   && !hasEssayMaterial(profile, profile.stories ?? [], extraNotes);
 
- // A story angle chosen in Story Studio prefills the notes here.
+ // A selected story angle prefills the notes here.
  useEffect(() => {
  if (pendingStoryAngle && consumedStoryAngle.current !== pendingStoryAngle) {
  consumedStoryAngle.current = pendingStoryAngle;
@@ -113,11 +115,6 @@ export default function GeneratePage() {
  async function handleGenerate(promptOverride?: string, wordLimitOverride?: number | null) {
  if (!profile) {
  toast.error("Build your profile first, the essay has to be about YOU.");
- return;
- }
- if (needsEssayMaterial) {
- openEssayMaterialEditor();
- toast.error("Add one real detail from your life before writing.");
  return;
  }
  if (!scholarshipUrl.trim() && pastedText.trim().length < 50) {
@@ -209,8 +206,6 @@ export default function GeneratePage() {
  <span>2 essays free</span>
  <span aria-hidden="true">/</span>
  <span>Built from your details</span>
- <span aria-hidden="true">/</span>
- <Link href="/manual" className="font-medium hover:underline" style={{ color: "var(--text-2)" }}>How it works</Link>
  </div>
  </div>
 
@@ -226,13 +221,13 @@ export default function GeneratePage() {
  {profile && needsEssayMaterial && (
  <div className="rounded-2xl p-4 flex flex-wrap items-center gap-4" style={{ background: "var(--surface)", border: "1px solid var(--border-2)" }}>
  <div className="flex-1 min-w-[240px]">
- <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Add one real detail before we write</p>
+ <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Want a stronger draft?</p>
  <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--text-2)" }}>
- Describe a moment you remember clearly or a responsibility you handled. Audri will use only what you provide.
+ Add one real moment if you have it. If not, Audri will draft with clean blanks you can replace.
  </p>
  </div>
  <button type="button" onClick={openEssayMaterialEditor} className="btn-secondary text-sm px-4 py-2 shrink-0">
- Add my detail
+ Add a detail
  </button>
  </div>
  )}
@@ -257,23 +252,33 @@ export default function GeneratePage() {
  </p>
  )}
 
- <div className="flex items-center gap-3 my-5">
- <div className="flex-1 gold-line" />
- <span className="text-xs font-medium" style={{ color: "var(--text-3)" }}>or paste the page text</span>
- <div className="flex-1 gold-line" />
- </div>
-
- <label className="block text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--gold)" }}>
- The entire scholarship page
+ <button
+ type="button"
+ onClick={() => setShowPasteFallback(!showPasteFallback)}
+ aria-expanded={showPasteFallback}
+ aria-controls="scholarship-paste-fallback"
+ className="mt-4 flex items-center gap-1.5 text-xs font-medium transition-colors"
+ style={{ color: "var(--text-2)" }}
+ >
+ <ChevronDown className="w-3.5 h-3.5" style={{ transform: showPasteFallback ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+ Can&apos;t use a link? Paste scholarship details instead
+ </button>
+ {showPasteFallback && (
+ <div id="scholarship-paste-fallback" className="mt-3">
+ <label htmlFor="scholarship-page-text" className="block text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "var(--gold)" }}>
+ Scholarship details
  </label>
  <textarea
+ id="scholarship-page-text"
  value={pastedText}
  onChange={(e) => setPastedText(e.target.value)}
- rows={12}
- placeholder={`Paste the scholarship page text here.\n\nInclude the prompt and deadline. Add eligibility or award details when you have them.`}
+ rows={7}
+ placeholder={`Paste the prompt and deadline here.\n\nAdd eligibility or award details when you have them.`}
  className="input-dark w-full resize-none font-mono text-sm"
  style={{ lineHeight: 1.6 }}
  />
+ </div>
+ )}
 
  {/* Optional notes */}
  <button
@@ -304,13 +309,25 @@ export default function GeneratePage() {
  </>
  )}
 
- {/* Voice & tone */}
- <div className="mt-5">
+ <button
+ type="button"
+ onClick={() => setShowVoiceControls(!showVoiceControls)}
+ aria-expanded={showVoiceControls}
+ aria-controls="voice-controls"
+ className="mt-4 flex items-center gap-1.5 text-xs font-medium transition-colors"
+ style={{ color: "var(--text-2)" }}
+ >
+ <ChevronDown className="w-3.5 h-3.5" style={{ transform: showVoiceControls ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+ Adjust voice
+ </button>
+ {showVoiceControls && (
+ <div id="voice-controls" className="mt-3">
  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--gold)" }}>
- Voice &amp; tone
+ Voice
  </label>
  <TonePicker value={toneId} onChange={setToneId} />
  </div>
+ )}
 
  <div className="flex items-center justify-between mt-5">
  <p className="text-xs" style={{ color: "var(--text-3)" }}>

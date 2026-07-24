@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { filterSeriousScholarships, isNoEssayScholarship } from "../lib/scholarships/quality";
+import { filterSeriousScholarships, isNoEssayScholarship, isNoEssayText } from "../lib/scholarships/quality";
 import type { ScrapedScholarship } from "../lib/scrapers/types";
 
 function scholarship(overrides: Partial<ScrapedScholarship>): ScrapedScholarship {
@@ -50,5 +50,6 @@ test("no essay and sweepstakes listings are excluded from search quality results
 
  assert.equal(isNoEssayScholarship(noEssay), true);
  assert.equal(isNoEssayScholarship(sweepstakes), true);
+ assert.equal(isNoEssayText("Monthly drawing", "No purchase required"), true);
  assert.deepEqual(filterSeriousScholarships([serious, noEssay, sweepstakes]).map((item) => item.id), ["test"]);
 });

@@ -8,7 +8,6 @@ import { checkEssayQuota, reserveEssay, releaseEssayReservation, FREE_ESSAY_LIMI
 import { guardAIRequest, readJsonBody, requestGuardResponse } from "@/lib/auth/guards";
 import { UnsafeUrlError } from "@/lib/scrapers/publicUrl";
 import { friendlyError } from "@/lib/errors";
-import { ESSAY_MATERIAL_ERROR, hasEssayMaterial } from "@/lib/ai/essayReadiness";
 
 type AutoEssayInput = Parameters<typeof generateEssayStrategy>[0];
 interface AutoEssayBody {
@@ -40,10 +39,6 @@ export async function POST(req: NextRequest) {
 
  if (!profile) {
  return NextResponse.json({ error: "Build your profile first so the essay is about YOU." }, { status: 400 });
- }
-
- if (!hasEssayMaterial(profile, stories, extraNotes)) {
- return NextResponse.json(ESSAY_MATERIAL_ERROR, { status: 422 });
  }
 
  // ── Paywall gate (server-enforced, token-authenticated) ─────────────────

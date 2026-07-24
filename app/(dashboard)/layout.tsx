@@ -4,23 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
- LayoutDashboard,
  User,
- BookOpen,
  FileText,
  Search,
- BarChart3,
  Sparkles,
  LogOut,
  Menu,
  X,
- ClipboardList,
- Zap,
  ChevronRight,
  Settings,
- Mail,
- BookMarked,
- Quote,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { AudriLogo } from "@/components/AudriLogo";
@@ -30,17 +22,9 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 const navItems = [
  { href: "/generate", icon: Sparkles, label: "Essay Generator", flagship: true },
- { href: "/manual", icon: BookMarked, label: "The Manual" },
- { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
- { href: "/profile", icon: User, label: "My Profile" },
  { href: "/scholarships/search",icon: Search, label: "Find Scholarships" },
- { href: "/scholarships/paste", icon: BarChart3, label: "Paste & Analyze" },
- { href: "/story-studio", icon: Quote, label: "Story Studio" },
- { href: "/stories", icon: BookOpen, label: "Story Vault" },
+ { href: "/profile", icon: User, label: "My Profile" },
  { href: "/essays", icon: FileText, label: "Essays" },
- { href: "/recommendations", icon: Mail, label: "Rec Letters" },
- { href: "/gap-analysis", icon: Zap, label: "Gap Analysis" },
- { href: "/resume", icon: ClipboardList, label: "Resume Builder" },
  { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
@@ -113,7 +97,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
  <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
  <div className="flex items-center gap-3" style={{ color: "var(--text-2)" }}>
  <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: "var(--border-2)", borderTopColor: "var(--gold)" }} />
- <span className="text-sm">Loading Audri…</span>
+ <span className="text-sm">Loading Audri...</span>
  </div>
  </div>
  );
@@ -304,7 +288,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
  href="/onboarding"
  className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors badge-gray"
  >
- Finish profile setup →
+ Finish profile setup
  </Link>
  )}
  <div className="w-8 h-8 rounded-full gradient-brand flex items-center justify-center" style={{ boxShadow: "0 0 12px var(--gold-15)" }}>

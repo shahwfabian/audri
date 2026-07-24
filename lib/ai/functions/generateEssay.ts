@@ -3,6 +3,7 @@
 import { callAI, callAIJSON } from "@/lib/ai/client";
 import { SYSTEM_PROMPTS } from "@/lib/ai/prompts/system";
 import { clampToWordLimit, countWords, enforceHouseStyle } from "@/lib/ai/style";
+import { isNonEssayResponse } from "@/lib/ai/nonEssayResponse";
 import type { StudentProfile, Story, EssayScores, EssayFeedback } from "@/lib/types";
 
 interface EssayGenerationInput {
@@ -42,6 +43,26 @@ interface EssayStrategyResult {
   closingLineDirection: string;
   missionAlignment: string;
   payItForward: string;
+}
+
+function sparseEssayFallback(input: EssayGenerationInput, target: number): string {
+  const p = input.profile;
+  const student = p.fullName?.trim() || "[your name]";
+  const school = p.schoolName?.trim() || "[your school]";
+  const major = (p.major || p.intendedMajor || "").trim() || "[your major or intended field]";
+  const goal = p.longTermGoals?.trim() || "[your long-term goal]";
+  const experience = input.extraNotes?.trim() || "[one real moment that shows your work, responsibility, or growth]";
+  const scholarship = input.scholarshipName || "this scholarship";
+
+  return clampToWordLimit(enforceHouseStyle(`${student} does not want ${scholarship} to be a line on a financial aid spreadsheet. I want it to become movement: another semester protected and another step toward ${goal}.
+
+At ${school}, I am studying ${major} because I keep returning to the same question: what changes when a person gets the support they need before the door closes? My answer starts with ${experience}. That moment matters because it shows the kind of student I am becoming. I do not move through problems as if they are abstract. I notice where the pressure lands, I look for the part I can carry, and I keep working until the next step becomes possible.
+
+The prompt asks me to explain why I am a strong candidate for ${scholarship}. The honest answer is that I am still building the story this award would support. I bring [specific responsibility] and [specific job or project]. Those details are the proof behind this application. They show that my goals are not decoration. They are already shaping how I spend my time.
+
+If selected, this award would help me continue toward ${goal} with more focus and less financial strain. It would give me room to keep doing the work that made me apply in the first place. I want the opportunity to move through me and become useful beyond myself.
+
+I am applying because I can see the next version of my work from here. With support from ${scholarship}, I can reach it with steadier hands.`), target);
 }
 
 function buildStudentDossier(input: EssayGenerationInput): string {
@@ -172,12 +193,41 @@ FINAL NARRATIVE AUDIT — run every question before you output; if any answer is
 13. Is it under the word limit with every question in the prompt answered?
 14. HOUSE STYLE: zero em dashes anywhere, and zero three-item lists / tricolons. If either appears, rewrite before returning.
 
-Output ONLY the essay text — no title, no labels, no preamble.`;
+If the real material is thin for this exact prompt, still write the strongest honest essay draft possible. Use only known facts. Put missing personal facts in clear brackets like [specific job], [one moment this system failed you], or [person you helped]. Never stop to advise the student. Never list what you need. Never explain that you cannot fabricate.
+
+Output ONLY the essay text. No title, no labels, no preamble.`;
 
   const draft = await callAI(prompt, SYSTEM_PROMPTS.ESSAY_WRITER, {
     maxTokens: 3000,
   });
   let polished = enforceHouseStyle(draft);
+  if (polished.trim() === "AUDRI_NEEDS_MORE_STUDENT_DETAIL" || isNonEssayResponse(polished)) {
+    polished = enforceHouseStyle(await callAI(
+      `Rewrite the response below as an actual scholarship essay draft.
+
+Rules:
+- Do not lecture the student.
+- Do not list missing information.
+- Do not invent personal facts.
+- Use bracketed fill-ins for missing student facts.
+- Answer the scholarship prompt as fully as the known facts allow.
+- Output only the essay draft.
+
+SCHOLARSHIP PROMPT:
+${input.prompt}
+
+KNOWN STUDENT MATERIAL:
+${buildStudentDossier(input)}
+
+BAD RESPONSE TO REPAIR:
+${draft}`,
+      SYSTEM_PROMPTS.ESSAY_WRITER,
+      { maxTokens: 3000 }
+    ));
+    if (polished.trim() === "AUDRI_NEEDS_MORE_STUDENT_DETAIL" || isNonEssayResponse(polished)) {
+      return sparseEssayFallback(input, target);
+    }
+  }
   if (countWords(polished) > target) {
     polished = enforceHouseStyle(await callAI(
       "Shorten the essay below to no more than " + target + " words. Preserve every factual detail. Keep the student's voice. Output only the revised essay.\n\n" + polished,

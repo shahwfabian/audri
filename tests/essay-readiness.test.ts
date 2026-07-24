@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { hasEssayMaterial } from "../lib/ai/essayReadiness";
+import { isNonEssayResponse } from "../lib/ai/nonEssayResponse";
 import { STORY_DETAIL_MARKER, STORY_STARTERS, starterToNote } from "../lib/ai/storyStarters";
 
 test("empty and biography-only profiles need essay material", () => {
@@ -22,6 +23,18 @@ test("empty and biography-only profiles need essay material", () => {
   ),
   false
  );
+});
+
+test("advisor-mode model output is not accepted as an essay", () => {
+ const response = `I need to be direct with you before I write a single word.
+
+What I need from the student:
+1. Is she a first-generation student?
+2. What jobs has she held?
+3. What project has she worked on?`;
+
+ assert.equal(isNonEssayResponse(response), true);
+ assert.equal(isNonEssayResponse("The library lights hummed while I reread the scholarship prompt."), false);
 });
 
 test("a detailed achievement, story, or note is enough", () => {
