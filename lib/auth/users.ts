@@ -3,13 +3,15 @@ import * as path from "path";
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { decryptJSON, encryptJSON, issueSession } from "./crypto";
 import { assertProductionDatabase, getAdminDatabase } from "@/lib/db/admin";
+import { DEFAULT_BILLING_PLAN_ID, getBillingPlan, type BillingPlanId } from "@/lib/billing/plans";
 
 const USERS_FILE = process.env.AUDRI_USERS_FILE ? path.basename(process.env.AUDRI_USERS_FILE) : "users.json";
 const USERS_PATH = path.join(process.cwd(), "data", USERS_FILE);
 const TERMS_VERSION = "2026-07-13";
 const PENDING_SIGNUP_TTL_MS = 30 * 60_000;
 
-export const FREE_ESSAY_LIMIT = Math.max(1, parseInt(process.env.AUDRI_FREE_ESSAYS ?? "3", 10) || 3);
+export const FREE_ESSAY_LIMIT = Math.max(1, parseInt(process.env.AUDRI_FREE_ESSAYS ?? "2", 10) || 2);
+export const FREE_ESSAY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 export interface StoredUser {
  id: string;
@@ -17,9 +19,14 @@ export interface StoredUser {
  name: string;
  passwordHash: string;
  plan: "free" | "pro";
+ billingPlan?: BillingPlanId | null;
  essaysGenerated: number;
+ quotaWindowStartedAt?: string;
+ paidEssaysGenerated?: number;
+ paidQuotaWindowStartedAt?: string;
  createdAt: string;
  upgradedAt?: string;
+ proExpiresAt?: string;
  profileEnc?: string;
  workspaceEnc?: string;
  stripeCustomerId?: string;
@@ -38,6 +45,7 @@ export interface PublicUser {
  email: string;
  name: string;
  plan: "free" | "pro";
+ billingPlan?: BillingPlanId | null;
  essaysGenerated: number;
  essaysRemaining: number | null;
  createdAt: string;
@@ -50,9 +58,14 @@ type DatabaseRow = {
  name: string;
  password_hash: string;
  plan: "free" | "pro";
+ billing_plan?: BillingPlanId | null;
  essays_generated: number;
+ quota_window_started_at?: string | null;
+ paid_essays_generated?: number | null;
+ paid_quota_window_started_at?: string | null;
  created_at: string;
  upgraded_at?: string | null;
+ pro_expires_at?: string | null;
  profile_enc?: string | null;
  workspace_enc?: string | null;
  stripe_customer_id?: string | null;
@@ -85,9 +98,14 @@ function fromDatabase(row: DatabaseRow): StoredUser {
   name: row.name,
   passwordHash: row.password_hash,
   plan: row.plan,
+  billingPlan: row.billing_plan ?? null,
   essaysGenerated: row.essays_generated,
+  quotaWindowStartedAt: row.quota_window_started_at ?? row.created_at,
+  paidEssaysGenerated: row.paid_essays_generated ?? 0,
+  paidQuotaWindowStartedAt: row.paid_quota_window_started_at ?? row.upgraded_at ?? row.created_at,
   createdAt: row.created_at,
   upgradedAt: row.upgraded_at ?? undefined,
+  proExpiresAt: row.pro_expires_at ?? undefined,
   profileEnc: row.profile_enc ?? undefined,
   workspaceEnc: row.workspace_enc ?? undefined,
   stripeCustomerId: row.stripe_customer_id ?? undefined,
@@ -171,14 +189,47 @@ function validateAccountInput(email: string, name: string, password: string, acc
  return null;
 }
 
+function weeklyUsage(user: StoredUser, now = Date.now()): { used: number; windowStartedAt: string } {
+ const startedAt = user.quotaWindowStartedAt ?? user.createdAt;
+ const started = Date.parse(startedAt);
+ if (!Number.isFinite(started) || now - started >= FREE_ESSAY_WINDOW_MS) {
+  return { used: 0, windowStartedAt: new Date(now).toISOString() };
+ }
+ return { used: user.essaysGenerated, windowStartedAt: startedAt };
+}
+
+function hasPaidAccess(user: StoredUser, now = Date.now()): boolean {
+ if (user.plan !== "pro") return false;
+ if (!user.proExpiresAt) return true;
+ const expires = Date.parse(user.proExpiresAt);
+ return Number.isFinite(expires) && expires > now;
+}
+
+function monthlyUsage(user: StoredUser, now = Date.now()): { used: number; windowStartedAt: string } {
+ const startedAt = user.paidQuotaWindowStartedAt ?? user.upgradedAt ?? user.createdAt;
+ const started = Date.parse(startedAt);
+ const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+ if (!Number.isFinite(started) || now - started >= thirtyDays) {
+  return { used: 0, windowStartedAt: new Date(now).toISOString() };
+ }
+ return { used: user.paidEssaysGenerated ?? 0, windowStartedAt: startedAt };
+}
+
+function activeBillingPlan(user: StoredUser): BillingPlanId {
+ return user.billingPlan ?? DEFAULT_BILLING_PLAN_ID;
+}
+
 export function toPublic(user: StoredUser, withToken = false): PublicUser {
+ const paid = hasPaidAccess(user);
+ const usage = weeklyUsage(user);
  return {
   id: user.id,
   email: user.email,
   name: user.name,
-  plan: user.plan,
-  essaysGenerated: user.essaysGenerated,
-  essaysRemaining: user.plan === "pro" ? null : Math.max(0, FREE_ESSAY_LIMIT - user.essaysGenerated),
+  plan: paid ? "pro" : "free",
+  billingPlan: paid ? activeBillingPlan(user) : null,
+  essaysGenerated: usage.used,
+  essaysRemaining: paid ? null : Math.max(0, FREE_ESSAY_LIMIT - usage.used),
   createdAt: user.createdAt,
   ...(withToken ? { token: issueSession(user.id, user.email, user.sessionVersion) } : {}),
  };
@@ -210,6 +261,7 @@ export async function createUser(email: string, name: string, password: string, 
   passwordHash: hashPassword(password),
   plan: "free",
   essaysGenerated: 0,
+  quotaWindowStartedAt: now,
   sessionVersion: 1,
   termsAcceptedAt: now,
   termsVersion: TERMS_VERSION,
@@ -226,6 +278,7 @@ export async function createUser(email: string, name: string, password: string, 
    password_hash: created.passwordHash,
    plan: created.plan,
    essays_generated: 0,
+   quota_window_started_at: created.quotaWindowStartedAt,
    session_version: 1,
    terms_accepted_at: created.termsAcceptedAt,
    terms_version: created.termsVersion,
@@ -320,6 +373,7 @@ export async function completePendingSignup(email: string): Promise<{ user?: Pub
   password_hash: pending.password_hash,
   plan: "free",
   essays_generated: 0,
+  quota_window_started_at: verifiedAt,
   session_version: 1,
   terms_accepted_at: pending.terms_accepted_at,
   terms_version: pending.terms_version,
@@ -357,8 +411,9 @@ export async function verifyAccountPassword(email: string, password: string): Pr
 export async function checkEssayQuota(email: string): Promise<{ allowed: boolean; remaining: number | null; plan: "free" | "pro" }> {
  const user = await findUser(email);
  if (!user) return { allowed: false, remaining: 0, plan: "free" };
- if (user.plan === "pro") return { allowed: true, remaining: null, plan: "pro" };
- const remaining = FREE_ESSAY_LIMIT - user.essaysGenerated;
+ if (hasPaidAccess(user)) return { allowed: true, remaining: null, plan: "pro" };
+ const usage = weeklyUsage(user);
+ const remaining = FREE_ESSAY_LIMIT - usage.used;
  return { allowed: remaining > 0, remaining: Math.max(0, remaining), plan: "free" };
 }
 
@@ -376,8 +431,19 @@ export async function reserveEssay(email: string): Promise<{ allowed: boolean; u
  return updateLocal((users) => {
   const user = users.find((candidate) => candidate.email === normalize(email));
   if (!user) return { allowed: false, user: null };
-  if (user.plan !== "pro" && user.essaysGenerated >= FREE_ESSAY_LIMIT) return { allowed: false, user: toPublic(user) };
-  user.essaysGenerated += 1;
+  if (hasPaidAccess(user)) {
+   const plan = getBillingPlan(activeBillingPlan(user));
+   const usage = monthlyUsage(user);
+   if (usage.used >= plan.monthlyEssayLimit) return { allowed: false, user: toPublic(user) };
+   user.paidEssaysGenerated = usage.used + 1;
+   user.paidQuotaWindowStartedAt = usage.windowStartedAt;
+  } else {
+   const usage = weeklyUsage(user);
+   if (usage.used >= FREE_ESSAY_LIMIT) return { allowed: false, user: toPublic(user) };
+   user.essaysGenerated = usage.used;
+   user.quotaWindowStartedAt = usage.windowStartedAt;
+   user.essaysGenerated += 1;
+  }
   return { allowed: true, user: toPublic(user) };
  });
 }
@@ -391,8 +457,13 @@ export async function releaseEssayReservation(email: string): Promise<void> {
  }
  assertProductionDatabase();
  await updateLocal((users) => {
-  const user = users.find((candidate) => candidate.email === normalize(email));
-  if (user && user.essaysGenerated > 0) user.essaysGenerated -= 1;
+ const user = users.find((candidate) => candidate.email === normalize(email));
+  if (!user) return;
+  if (hasPaidAccess(user) && (user.paidEssaysGenerated ?? 0) > 0) {
+   user.paidEssaysGenerated = (user.paidEssaysGenerated ?? 0) - 1;
+  } else if (user.essaysGenerated > 0) {
+   user.essaysGenerated -= 1;
+  }
  });
 }
 
@@ -434,18 +505,22 @@ export async function getUserWorkspace(email: string): Promise<unknown | null> {
 
 export async function setSubscription(email: string, details: {
  plan: "free" | "pro";
+ billingPlan?: BillingPlanId | null;
  customerId?: string | null;
  subscriptionId?: string | null;
  status?: string | null;
+ proExpiresAt?: string | null;
 }): Promise<PublicUser | null> {
  const database = getAdminDatabase();
  const timestamp = new Date().toISOString();
  if (database) {
   const { data, error } = await database.from("audri_users").update({
    plan: details.plan,
+   billing_plan: details.billingPlan,
    stripe_customer_id: details.customerId,
    stripe_subscription_id: details.subscriptionId,
    subscription_status: details.status,
+   pro_expires_at: details.proExpiresAt,
    upgraded_at: details.plan === "pro" ? timestamp : null,
    updated_at: timestamp,
   }).eq("email", normalize(email)).select("*").maybeSingle();
@@ -457,9 +532,11 @@ export async function setSubscription(email: string, details: {
   const user = users.find((candidate) => candidate.email === normalize(email));
   if (!user) return null;
   user.plan = details.plan;
+  user.billingPlan = details.billingPlan ?? null;
   user.stripeCustomerId = details.customerId ?? undefined;
   user.stripeSubscriptionId = details.subscriptionId ?? undefined;
   user.subscriptionStatus = details.status ?? undefined;
+  user.proExpiresAt = details.proExpiresAt ?? undefined;
   user.upgradedAt = details.plan === "pro" ? timestamp : undefined;
   return toPublic(user);
  });

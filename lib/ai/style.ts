@@ -50,5 +50,5 @@ export function clampToWordLimit(text: string, limit?: number): string {
 
 /** Best-effort detector for the classic "a, b, and c" tricolon (for logging only). */
 export function hasSuspectedTricolon(text: string): boolean {
-  return /\b[\w'’-]+,\s+[\w'’-]+,\s+(?:and|or)\s+[\w'’-]+/i.test(text);
+  return /\b[^.!?\n,]{1,80},\s+[^.!?\n,]{1,80},\s+(?:and|or)\s+[^.!?\n,]{1,80}/i.test(text);
 }

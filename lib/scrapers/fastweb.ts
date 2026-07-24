@@ -11,6 +11,9 @@ import type { ScrapedScholarship } from "./types";
 const BASE = "https://www.fastweb.com";
 
 const LISTING_PAGES = [
+ "/college-scholarships/articles/scholarships-for-college-students",
+ "/college-scholarships/articles/july-scholarship-opportunities",
+ "/college-scholarships/articles/full-tuition-scholarships",
  "/college-scholarships/articles/biggest-scholarships-in-america",
  "/college-scholarships/articles/scholarships-for-high-school-seniors",
  "/college-scholarships/articles/scholarships-for-first-generation-college-students",
@@ -33,7 +36,10 @@ function extractScholarshipsFromArticle(html: string, pageUrl: string): ScrapedS
  const results: ScrapedScholarship[] = [];
 
  // Fastweb articles list scholarships inside list items / sections
- const articleText = $("article, .article-content, .post-content, main").first();
+ let articleText = $("article, .article-content, .post-content, main").first();
+ if (articleText.length === 0 || cleanText(articleText.text()).length < 200) {
+  articleText = $("body");
+ }
 
  // Try structured list items
  const items = articleText.find("h2, h3, h4, li strong, .scholarship-name").toArray();
@@ -41,7 +47,10 @@ function extractScholarshipsFromArticle(html: string, pageUrl: string): ScrapedS
  items.forEach((el, idx) => {
  const heading = cleanText($(el).text());
  if (!heading || heading.length < 5 || heading.length > 120) return;
- if (/^(see also|related|more|click|read|apply|learn)/i.test(heading)) return;
+ if (/^(see also|related|more|click|read|apply|learn|what's trending|scholarships for|scholarship questions|next step|you might also like|popular|latest|trending)$/i.test(heading)) return;
+ if (/^(how|top|unique|why|applied for|in her|video scholarships|july|college scholarships|scholarships for|full-tuition scholarships|the ultimate list|x fastweb)/i.test(heading)) return;
+ if (/^\d{4}\s+.*scholarships/i.test(heading) || /^\d+\+?\s+best\s+.*scholarships/i.test(heading)) return;
+ if (!/(scholarship|scholars|award|grant|fellowship|tuition|program|fund)/i.test(heading)) return;
 
  // Try to find adjacent amount and description
  const next = $(el).nextAll("p, li, div").first();
@@ -99,7 +108,7 @@ function urlToCategories(url: string): string[] {
  if (url.includes("need-based")) cats.push("Need-Based");
  if (url.includes("transfer")) cats.push("Transfer");
  if (url.includes("athletic") || url.includes("sport")) cats.push("Athletics");
- if (url.includes("art")) cats.push("Arts");
+ if (url.includes("art-scholarships")) cats.push("Arts");
  if (url.includes("nursing") || url.includes("health")) cats.push("Healthcare");
  if (url.includes("business")) cats.push("Business");
  return cats;

@@ -465,6 +465,7 @@ export const STORY_STARTERS: StoryStarter[] = [
 ];
 
 export const STORY_STARTER_COUNT = STORY_STARTERS.length;
+export const STORY_DETAIL_MARKER = "My real details:";
 
 export function getStarterById(id: string | undefined | null): StoryStarter | undefined {
  if (!id) return undefined;
@@ -474,5 +475,5 @@ export function getStarterById(id: string | undefined | null): StoryStarter | un
 /** Turn a chosen starter + metaphor into a note the essay engine can use as an angle. */
 export function starterToNote(starter: StoryStarter, metaphor?: string): string {
  const lens = metaphor ? `\nFrame it through this lens: ${metaphor}.` : "";
- return `Center this essay on my real experience: ${starter.title.toLowerCase()}, ${starter.experience}${lens}\n(This is my own true experience; use only the specifics I provide.)`;
+ return `Story direction I chose: ${starter.title.toLowerCase()}, ${starter.experience}${lens}\n\n${STORY_DETAIL_MARKER} `;
 }

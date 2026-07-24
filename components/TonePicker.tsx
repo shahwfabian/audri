@@ -24,6 +24,7 @@ export function TonePicker({ value, onChange }: { value: string; onChange: (id: 
  const catalogueId = useId();
  const [open, setOpen] = useState(false);
  const [query, setQuery] = useState("");
+ const [showAdvanced, setShowAdvanced] = useState(false);
  const [draftId, setDraftId] = useState(parseToneId(value) ? value : DEFAULT_TONE_ID);
 
  const searchResults = useMemo(() => searchToneOptions(query, TONE_COUNT), [query]);
@@ -38,6 +39,7 @@ export function TonePicker({ value, onChange }: { value: string; onChange: (id: 
   if (!open) {
    setDraftId(parseToneId(value) ? value : DEFAULT_TONE_ID);
    setQuery("");
+   setShowAdvanced(false);
   }
   setOpen((isOpen) => !isOpen);
  }
@@ -66,7 +68,7 @@ export function TonePicker({ value, onChange }: { value: string; onChange: (id: 
    >
     <Mic className="w-4 h-4 shrink-0" style={{ color: "var(--gold)" }} />
     <span className="flex-1 text-left truncate">{currentLabel}</span>
-    <span className="text-xs shrink-0" style={{ color: "var(--text-3)" }}>{TONE_COUNT.toLocaleString()} voices</span>
+    <span className="text-xs shrink-0" style={{ color: "var(--text-3)" }}>Featured voices</span>
     <ChevronDown className="w-4 h-4 shrink-0" style={{ color: "var(--text-3)", transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
    </button>
 
@@ -90,9 +92,9 @@ export function TonePicker({ value, onChange }: { value: string; onChange: (id: 
        <SlidersHorizontal className="w-4 h-4" style={{ color: "var(--gold)" }} />
       </div>
       <div className="min-w-0 flex-1">
-       <h3 className="text-sm font-semibold">Voice catalogue</h3>
+       <h3 className="text-sm font-semibold">Featured voices</h3>
        <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--text-3)" }}>
-        Choose a writer stance, emotional texture, and formality level. Audri combines them into one precise voice.
+        Start with a proven essay voice. Open the full catalogue only when you want finer control.
        </p>
       </div>
       <button type="button" onClick={() => setOpen(false)} aria-label="Close voice catalogue" className="p-1.5 rounded-lg transition-colors" style={{ color: "var(--text-3)" }}>
@@ -100,6 +102,7 @@ export function TonePicker({ value, onChange }: { value: string; onChange: (id: 
       </button>
      </div>
 
+     {showAdvanced && (
      <div className="p-3" style={{ borderBottom: "1px solid var(--border)" }}>
       <label htmlFor={`${catalogueId}-search`} className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--gold)" }}>
        Search exact combinations
@@ -121,9 +124,10 @@ export function TonePicker({ value, onChange }: { value: string; onChange: (id: 
        )}
       </div>
      </div>
+     )}
 
      <div className="overflow-y-auto p-3">
-      {query.trim() ? (
+      {showAdvanced && query.trim() ? (
        <SearchCatalogue
         query={query}
         total={searchResults.length}
@@ -134,7 +138,7 @@ export function TonePicker({ value, onChange }: { value: string; onChange: (id: 
       ) : (
        <>
         <section>
-         <SectionHeading title="Proven starting points" description="Pick a complete recipe, then adjust any ingredient below." />
+         <SectionHeading title="Best starting points" description="Pick one complete recipe before writing." />
          <div className="grid sm:grid-cols-2 gap-1.5 mt-2">
           {featured.map((option) => option && (
            <ToneRow
@@ -148,10 +152,19 @@ export function TonePicker({ value, onChange }: { value: string; onChange: (id: 
          </div>
         </section>
 
-        <div className="my-4" style={{ borderTop: "1px solid var(--border)" }} />
-
-        <section>
-         <SectionHeading title="Build your own voice" description="Every combination is available. Make three choices and review the recipe before applying it." />
+        {!showAdvanced ? (
+         <button
+          type="button"
+          onClick={() => setShowAdvanced(true)}
+          className="btn-ghost mt-4 w-full text-xs py-2"
+         >
+          Open full voice catalogue
+         </button>
+        ) : (
+        <>
+         <div className="my-4" style={{ borderTop: "1px solid var(--border)" }} />
+         <section>
+         <SectionHeading title="Build your own voice" description="Make three choices and review the recipe before applying it." />
          <div className="mt-4 space-y-5">
           <FacetSelector
            step="1"
@@ -179,6 +192,8 @@ export function TonePicker({ value, onChange }: { value: string; onChange: (id: 
           />
          </div>
         </section>
+        </>
+        )}
        </>
       )}
      </div>

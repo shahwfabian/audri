@@ -30,6 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# local autoresearch output
+/research/runs/
+
+# local server launch logs
+/.audri-*.log
+
 # env files (can opt-in for committing if needed)
 .env*
 
@@ -46,6 +52,9 @@ next-env.d.ts
 /data/users.json.*.tmp
 /data/users.test.*.json.*.tmp
 /data/.secret
+
+.vercel
+.env*
 
 # ...but do commit the template
 !.env.example

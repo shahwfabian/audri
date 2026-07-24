@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDatabase } from "@/lib/db/admin";
 import { BUILT_IN_SCHOLARSHIPS, readScholarshipDB, searchScholarships } from "@/lib/scrapers";
+import { filterSeriousScholarships } from "@/lib/scholarships/quality";
 import type { ScrapedScholarship } from "@/lib/scrapers/types";
 
 type ScholarshipRow = {
@@ -72,7 +73,7 @@ function filterScholarships(items: ScrapedScholarship[], params: {
  limit: number;
  offset: number;
 }) {
- let filtered = items;
+ let filtered = filterSeriousScholarships(items);
  if (params.query) {
   const query = params.query.toLowerCase();
   filtered = filtered.filter((item) => [item.name, item.organization, item.description, item.eligibility, ...item.tags].some((value) => value.toLowerCase().includes(query)));
@@ -105,7 +106,7 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: "Could not load scholarships." }, { status: 500 });
   const databaseItems = (data as ScholarshipRow[]).map(mapDatabaseScholarship);
   const knownIds = new Set(databaseItems.map((item) => item.id));
-  const merged = [...databaseItems, ...BUILT_IN_SCHOLARSHIPS.filter((item) => !knownIds.has(item.id))];
+  const merged = filterSeriousScholarships([...databaseItems, ...BUILT_IN_SCHOLARSHIPS.filter((item) => !knownIds.has(item.id))]);
   const result = filterScholarships(merged, { ...params, categories: params.categories.length ? params.categories : undefined });
   const lastUpdated = databaseItems.reduce((latest, item) => item.scrapedAt > latest ? item.scrapedAt : latest, "1970-01-01T00:00:00.000Z");
   return NextResponse.json({ ...result, lastUpdated, dbTotal: merged.length });
@@ -113,5 +114,6 @@ export async function GET(req: NextRequest) {
 
  const result = searchScholarships({ ...params, categories: params.categories.length ? params.categories : undefined });
  const local = readScholarshipDB();
- return NextResponse.json({ ...result, lastUpdated: local.lastUpdated, dbTotal: local.totalCount });
+ const seriousTotal = filterSeriousScholarships(local.scholarships).length;
+ return NextResponse.json({ ...result, lastUpdated: local.lastUpdated, dbTotal: seriousTotal });
 }

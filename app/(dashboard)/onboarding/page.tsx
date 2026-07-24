@@ -432,27 +432,14 @@ export default function OnboardingPage() {
  <div className="w-16 h-16 rounded-2xl gradient-brand flex items-center justify-center mx-auto" style={{ boxShadow: "0 0 30px var(--gold-25)" }}>
  <CheckCircle2 className="w-8 h-8" style={{ color: "#080808" }} />
  </div>
+ <h2 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Your profile is saved.</h2>
  <p className="leading-relaxed" style={{ color: "var(--text-2)", fontSize: "0.9rem" }}>
- Your scholarship profile is ready. Head to your dashboard to find scholarships,
- paste opportunities, generate essays, and track your applications.
+ Paste a scholarship link next. Audri will use your profile to prepare the first draft.
  </p>
- <div className="grid grid-cols-2 gap-3 text-left">
- {[
- { step: "Next →", action: "Paste a scholarship to analyze" },
- { step: "Then →", action: "Build your Story Vault" },
- { step: "Then →", action: "Generate your first essay" },
- { step: "Always →", action: "Check your gap analysis" },
- ].map((item, i) => (
- <div key={item.action} className="rounded-xl p-3" style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
- <div className="text-xs font-semibold mb-0.5" style={{ color: i === 0 ? "var(--gold)" : "var(--gold-dark)" }}>{item.step}</div>
- <div className="text-sm" style={{ color: "var(--text-2)" }}>{item.action}</div>
- </div>
- ))}
- </div>
  <button onClick={handleFinish} disabled={aiProcessing} className="btn-gold w-full flex items-center justify-center gap-2 text-base">
  {aiProcessing
  ? <><Loader2 className="w-4 h-4 animate-spin" /> Setting up...</>
- : <>Go to my dashboard <ArrowRight className="w-4 h-4" /></>}
+ : <>Write my first essay <ArrowRight className="w-4 h-4" /></>}
  </button>
  </div>
  )}

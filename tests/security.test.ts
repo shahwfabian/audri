@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import test, { after, before } from "node:test";
-import { unlinkSync } from "node:fs";
+import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
 
 const usersFile = `users.test.${randomUUID()}.json`;
 const usersPath = path.join(process.cwd(), "data", usersFile);
@@ -20,6 +20,7 @@ let parseResumeRoute: typeof import("../app/api/ai/parse-resume/route");
 let scrapeRoute: typeof import("../app/api/scholarships/scrape/route");
 let styleModule: typeof import("../lib/ai/style");
 let loginRoute: typeof import("../app/api/auth/login/route");
+let essayReadinessModule: typeof import("../lib/ai/essayReadiness");
 let NextRequest: typeof import("next/server").NextRequest;
 
 before(async () => {
@@ -32,6 +33,7 @@ before(async () => {
  scrapeRoute = await import("../app/api/scholarships/scrape/route");
  styleModule = await import("../lib/ai/style");
  loginRoute = await import("../app/api/auth/login/route");
+ essayReadinessModule = await import("../lib/ai/essayReadiness");
  ({ NextRequest } = await import("next/server"));
 });
 
@@ -71,6 +73,60 @@ test("quota reservation is bounded and can be rolled back", async () => {
 
  await usersModule.releaseEssayReservation("quota@example.com");
  assert.equal((await usersModule.reserveEssay("quota@example.com")).allowed, true);
+});
+
+test("free essay quota resets every 7 days", async () => {
+ const created = await usersModule.createUser("weekly@example.com", "Weekly Student", "strong-password", true);
+ assert.ok(created.user?.token);
+ assert.equal((await usersModule.reserveEssay("weekly@example.com")).allowed, true);
+ assert.equal((await usersModule.reserveEssay("weekly@example.com")).allowed, true);
+ assert.equal((await usersModule.reserveEssay("weekly@example.com")).allowed, false);
+
+ const users = JSON.parse(readFileSync(usersPath, "utf-8")) as Array<Record<string, unknown>>;
+ const weekly = users.find((user) => user.email === "weekly@example.com");
+ assert.ok(weekly);
+ weekly.quotaWindowStartedAt = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+ writeFileSync(usersPath, JSON.stringify(users, null, 2), "utf-8");
+
+ const reset = await usersModule.reserveEssay("weekly@example.com");
+ assert.equal(reset.allowed, true);
+ assert.equal(reset.user?.essaysRemaining, 1);
+});
+
+test("paid plans use hidden monthly fair-use budgets", async () => {
+ const created = await usersModule.createUser("student-plan@example.com", "Student Plan", "strong-password", true);
+ assert.ok(created.user?.token);
+ await usersModule.setSubscription("student-plan@example.com", {
+  plan: "pro",
+  billingPlan: "student",
+  status: "active",
+ });
+
+ for (let i = 0; i < 30; i += 1) {
+  assert.equal((await usersModule.reserveEssay("student-plan@example.com")).allowed, true);
+ }
+ assert.equal((await usersModule.reserveEssay("student-plan@example.com")).allowed, false);
+
+ const users = JSON.parse(readFileSync(usersPath, "utf-8")) as Array<Record<string, unknown>>;
+ const paid = users.find((user) => user.email === "student-plan@example.com");
+ assert.ok(paid);
+ paid.paidQuotaWindowStartedAt = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
+ writeFileSync(usersPath, JSON.stringify(users, null, 2), "utf-8");
+
+ const reset = await usersModule.reserveEssay("student-plan@example.com");
+ assert.equal(reset.allowed, true);
+ assert.equal(reset.user?.plan, "pro");
+});
+
+test("essay readiness is advisory instead of a flagship blocker", async () => {
+ const created = await usersModule.createUser("essay-readiness@example.com", "Readiness Student", "strong-password", true);
+ assert.ok(created.user?.token);
+ const before = await usersModule.checkEssayQuota("essay-readiness@example.com");
+
+ assert.equal(essayReadinessModule.hasEssayMaterial({ achievements: [], stories: [] }, [], ""), false);
+
+ const after = await usersModule.checkEssayQuota("essay-readiness@example.com");
+ assert.equal(after.remaining, before.remaining);
 });
 
 test("billing requires a session and ignores query-string identity", async () => {

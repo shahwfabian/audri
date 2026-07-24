@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { generateId } from "@/lib/utils";
+import { isNoEssayScholarship } from "@/lib/scholarships/quality";
 import { toast } from "sonner";
 import Link from "next/link";
 import {
@@ -25,7 +26,7 @@ import type { ScrapedScholarship } from "@/lib/scrapers/types";
 import type { SavedScholarship, StudentProfile } from "@/lib/types";
 
 const CATEGORY_FILTERS = [
- "All", "No Essay", "Need-Based", "Merit", "STEM", "Community Service",
+ "All", "Need-Based", "Merit", "STEM", "Community Service",
  "Leadership", "Women", "Minority", "First Generation", "Graduate",
  "High School", "Athletics", "Arts", "Business", "Healthcare",
  "International", "Full Ride", "Local", "Transfer",
@@ -48,10 +49,103 @@ interface EligResult {
  passing: string[];
 }
 
+interface RankedScholarship {
+ scholarship: ScrapedScholarship;
+ eligResult: EligResult;
+ score: number;
+ reason: string;
+}
+
 const STEM_KEYWORDS = ["computer","engineer","math","physics","chemistry","biology","science","technology","data","information","cyber","software","electrical","mechanical","aerospace"];
 const HEALTH_KEYWORDS = ["nursing","medicine","medical","health","pharmacy","dental","therapy","pre-med","premed","clinical","biomedical","physician"];
 const BIZ_KEYWORDS = ["business","finance","accounting","economics","marketing","management","mba","entrepreneur","administration"];
 const ARTS_KEYWORDS = ["art","design","music","theater","film","creative","visual","performing","dance","writing","journalism","communication"];
+const LEADERSHIP_KEYWORDS = ["leadership", "captain", "president", "founder", "organizer", "mentor"];
+const SERVICE_KEYWORDS = ["service", "volunteer", "community", "nonprofit", "mutual aid", "civic"];
+const RESEARCH_KEYWORDS = ["research", "lab", "science fair", "publication", "experiment"];
+
+function textForMatch(s: ScrapedScholarship): string {
+ return [s.name, s.organization, s.description, s.eligibility, ...s.categories, ...s.tags].join(" ").toLowerCase();
+}
+
+function includesAny(text: string, terms: string[]): boolean {
+ return terms.some((term) => text.includes(term));
+}
+
+function gpaRequirement(text: string): number | null {
+ const match = text.match(/(?:minimum|min\.?|at least)\s*(?:gpa\s*)?(?:of\s*)?([2-4](?:\.\d{1,2})?)/i)
+  ?? text.match(/([2-4](?:\.\d{1,2})?)\s*(?:minimum\s*)?gpa/i);
+ return match ? Number(match[1]) : null;
+}
+
+function rankScholarship(s: ScrapedScholarship, profile: StudentProfile | null, eligResult: EligResult): { score: number; reason: string } {
+ if (!profile) return { score: 0, reason: "Build your profile for matching" };
+ if (eligResult.status === "ineligible") return { score: 5, reason: eligResult.blocking[0] ?? "May not match" };
+
+ const text = textForMatch(s);
+ const major = (profile.major || profile.intendedMajor || "").toLowerCase();
+ const interests = (profile.careerInterests ?? []).join(" ").toLowerCase();
+ const state = (profile.state || profile.location || "").toLowerCase();
+ const demos = (profile.demographics ?? []).join(" ").toLowerCase();
+ const achievementCategories = (profile.achievements ?? []).map((achievement) => achievement.category);
+ const evidence: string[] = [];
+ let score = 35;
+
+ if (eligResult.status === "eligible") score += 25;
+ if (eligResult.status === "partial") score += 10;
+ if (eligResult.status === "unknown") score -= 5;
+
+ const requiredGpa = gpaRequirement(text);
+ if (requiredGpa && typeof profile.gpa === "number") {
+  if (profile.gpa >= requiredGpa) {
+   score += 12;
+   evidence.push("GPA fits");
+  } else {
+   score -= 30;
+   evidence.push("GPA may miss");
+  }
+ }
+
+ if (state && text.includes(state)) {
+  score += 18;
+  evidence.push("local fit");
+ }
+ if (major && text.includes(major)) {
+  score += 16;
+  evidence.push("major fit");
+ }
+ if (interests && interests.split(/\s+/).filter((word) => word.length > 4).some((word) => text.includes(word))) {
+  score += 10;
+  evidence.push("interest fit");
+ }
+ if (demos && demos.split(/\s+/).filter((word) => word.length > 4).some((word) => text.includes(word))) {
+  score += 10;
+  evidence.push("background fit");
+ }
+ if (profile.isFirstGeneration && text.includes("first")) {
+  score += 10;
+  evidence.push("first-gen fit");
+ }
+ if (profile.financialNeedContext && includesAny(text, ["need", "fafsa", "sai", "income", "pell"])) {
+  score += 10;
+  evidence.push("need fit");
+ }
+ if (achievementCategories.includes("LEADERSHIP") && includesAny(text, LEADERSHIP_KEYWORDS)) {
+  score += 8;
+  evidence.push("leadership proof");
+ }
+ if (achievementCategories.includes("SERVICE") && includesAny(text, SERVICE_KEYWORDS)) {
+  score += 8;
+  evidence.push("service proof");
+ }
+ if (achievementCategories.includes("RESEARCH") && includesAny(text, RESEARCH_KEYWORDS)) {
+  score += 8;
+  evidence.push("research proof");
+ }
+
+ const reason = evidence[0] ?? eligResult.passing[0] ?? "Profile fit needs review";
+ return { score: Math.max(0, Math.min(99, score)), reason };
+}
 
 function checkEligibility(s: ScrapedScholarship, profile: StudentProfile | null): EligResult {
  if (!profile) return { status: "unknown", blocking: [], passing: [] };
@@ -167,17 +261,19 @@ function EligBadge({ result }: { result: EligResult }) {
 }
 
 function ScholarshipCard({
- scholarship, isSaved, onSave, eligResult,
+ scholarship, isSaved, onSave, eligResult, matchScore, matchReason,
 }: {
  scholarship: ScrapedScholarship;
  isSaved: boolean;
  onSave: (s: ScrapedScholarship) => void;
  eligResult: EligResult;
+ matchScore: number;
+ matchReason: string;
 }) {
  const src = SOURCE_LABELS[scholarship.source] ?? { label: scholarship.source };
  const hasEssay = scholarship.prompts.length > 0;
  const excerpt = scholarship.description?.length > 180
- ? scholarship.description.slice(0, 180) + "…"
+ ? scholarship.description.slice(0, 180) + "..."
  : scholarship.description;
 
  return (
@@ -230,10 +326,7 @@ function ScholarshipCard({
  {scholarship.deadlineText}
  </div>
  )}
- {hasEssay
- ? <span style={{ color: "var(--text-3)" }}>Essay required</span>
- : <span className="font-medium" style={{ color: "var(--green)" }}>No essay</span>
- }
+ <span style={{ color: "var(--text-3)" }}>{hasEssay ? "Essay prompt listed" : "Prompt not listed"}</span>
  </div>
 
  {/* Description */}
@@ -242,6 +335,7 @@ function ScholarshipCard({
  {/* Eligibility badge + reasoning */}
  <div className="flex items-start justify-between gap-2">
  <EligBadge result={eligResult} />
+ <span className="text-xs font-semibold shrink-0" style={{ color: "var(--text-2)" }}>{matchScore}% match</span>
  {eligResult.blocking.length > 0 && (
  <p className="text-xs" style={{ color: "var(--red)" }}>{eligResult.blocking[0]}</p>
  )}
@@ -249,6 +343,9 @@ function ScholarshipCard({
  <p className="text-xs" style={{ color: "var(--green)" }}>{eligResult.passing[0]}</p>
  )}
  </div>
+ {matchReason && (
+ <p className="text-xs" style={{ color: "var(--text-3)" }}>Matched on {matchReason}</p>
+ )}
 
  {/* Actions */}
  <div className="flex gap-2 pt-1">
@@ -258,7 +355,7 @@ function ScholarshipCard({
  className={isSaved ? "flex-1 text-xs py-2 rounded-xl font-medium" : "flex-1 btn-gold text-xs py-2 rounded-xl"}
  style={isSaved ? { background: "var(--surface-2)", color: "var(--text-3)" } : {}}
  >
- {isSaved ? "Saved ✓" : "Save to Dashboard"}
+ {isSaved ? "Saved" : "Save to Dashboard"}
  </button>
  {scholarship.applicationUrl && (
  <a
@@ -363,18 +460,25 @@ export default function ScholarshipSearchPage() {
  toast.success(`"${s.name}" saved to your dashboard!`);
  }
 
- const eligResults = scholarships.map((s) => checkEligibility(s, profile));
+ const rankedScholarships: RankedScholarship[] = useMemo(() => scholarships
+ .filter((s) => !isNoEssayScholarship(s))
+ .map((scholarship) => {
+  const eligResult = checkEligibility(scholarship, profile);
+  const ranking = rankScholarship(scholarship, profile, eligResult);
+  return { scholarship, eligResult, score: ranking.score, reason: ranking.reason };
+ })
+ .sort((a, b) => b.score - a.score || (b.scholarship.amount ?? 0) - (a.scholarship.amount ?? 0)), [scholarships, profile]);
 
  const displayed = eligibleOnly
- ? scholarships.filter((_, i) => eligResults[i].status !== "ineligible")
- : scholarships;
+ ? rankedScholarships.filter((item) => item.eligResult.status !== "ineligible")
+ : rankedScholarships;
 
  const formattedDate = lastUpdated
  ? new Date(lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
  : null;
 
- const eligibleCount = eligResults.filter(r => r.status === "eligible").length;
- const ineligibleCount = eligResults.filter(r => r.status === "ineligible").length;
+ const eligibleCount = rankedScholarships.filter(({ eligResult }) => eligResult.status === "eligible").length;
+ const ineligibleCount = rankedScholarships.filter(({ eligResult }) => eligResult.status === "ineligible").length;
 
  return (
  <div className="max-w-6xl mx-auto space-y-5">
@@ -383,8 +487,8 @@ export default function ScholarshipSearchPage() {
  <div>
  <h1 className="text-2xl font-bold" style={{ color: "var(--text)" }}>Find Scholarships</h1>
  <p className="text-sm mt-1" style={{ color: "var(--text-2)" }}>
- {dbTotal > 0 ? `${dbTotal.toLocaleString()} scholarships from Scholarships.com, Fastweb & How2Win` : "Loading scholarship database…"}
- {formattedDate && <span style={{ color: "var(--text-3)" }}> · Updated {formattedDate}</span>}
+ {dbTotal > 0 ? `${dbTotal.toLocaleString()} serious scholarships from Scholarships.com, Fastweb, and How2Win` : "Loading scholarship database..."}
+ {formattedDate && <span style={{ color: "var(--text-3)" }}> / Updated {formattedDate}</span>}
  </p>
  </div>
  <div className="flex items-center gap-2">
@@ -398,7 +502,7 @@ export default function ScholarshipSearchPage() {
  </button>
  <button onClick={refreshCatalog} disabled={scraping} title="Refresh scholarship catalog" className="btn-ghost flex items-center gap-1.5 text-sm px-3 py-2">
  {scraping ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
- {scraping ? "Refreshing…" : "Refresh Data"}
+ {scraping ? "Refreshing..." : "Refresh Data"}
  </button>
  </div>
  </div>
@@ -409,25 +513,25 @@ export default function ScholarshipSearchPage() {
  <div>
  <div className="font-semibold mb-1 text-sm" style={{ color: "var(--gold-light)" }}>Get personalized eligibility screening</div>
  <p className="text-sm" style={{ color: "var(--gold-dark)" }}>
- Set your GPA, major, state, and education level in your profile, and Audri will only show you scholarships you can actually win.
+ Add your GPA, major, state, and education level. Audri will rank scholarships by fit before you spend time applying.
  </p>
  </div>
  <Link href="/profile" className="btn-gold text-sm px-4 py-2 shrink-0 whitespace-nowrap">
- Build profile →
+ Build profile
  </Link>
  </div>
  )}
 
  {/* Eligibility summary bar */}
- {profileComplete && scholarships.length > 0 && (
+ {profileComplete && rankedScholarships.length > 0 && (
  <div className="rounded-xl border p-4 flex items-center gap-4 flex-wrap" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
  <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: "var(--gold)" }} />
  <div className="flex items-center gap-4 text-sm flex-wrap flex-1">
  <span className="font-medium" style={{ color: "var(--green)" }}>{eligibleCount} you qualify for</span>
- <span style={{ color: "var(--text-3)" }}>·</span>
+ <span style={{ color: "var(--text-3)" }}>/</span>
  <span style={{ color: "var(--red)" }}>{ineligibleCount} may not match</span>
- <span style={{ color: "var(--text-3)" }}>·</span>
- <span style={{ color: "var(--text-2)" }}>{scholarships.length - eligibleCount - ineligibleCount} unconfirmed</span>
+ <span style={{ color: "var(--text-3)" }}>/</span>
+ <span style={{ color: "var(--text-2)" }}>{rankedScholarships.length - eligibleCount - ineligibleCount} unconfirmed</span>
  </div>
  <label className="flex items-center gap-2 cursor-pointer">
  <div
@@ -450,7 +554,7 @@ export default function ScholarshipSearchPage() {
  value={query}
  onChange={(e) => setQuery(e.target.value)}
  onKeyDown={(e) => e.key === "Enter" && fetchScholarships(true)}
- placeholder="Search by name, major, keyword, organization…"
+ placeholder="Search by name, major, keyword, or organization"
  className="input-dark w-full pl-11 pr-10 py-3 text-sm"
  />
  {query && (
@@ -501,8 +605,8 @@ export default function ScholarshipSearchPage() {
  {/* Results header */}
  <div className="flex items-center justify-between">
  <p className="text-sm" style={{ color: "var(--text-2)" }}>
- {loading ? "Loading…" : `${eligibleOnly ? displayed.length : total} scholarships`}
- {activeCategory !== "All" && <span className="font-medium" style={{ color: "var(--text)" }}> · {activeCategory}</span>}
+ {loading ? "Loading..." : `${eligibleOnly ? displayed.length : total} scholarships`}
+ {activeCategory !== "All" && <span className="font-medium" style={{ color: "var(--text)" }}> / {activeCategory}</span>}
  </p>
  {query && (
  <button onClick={() => { setQuery(""); setActiveCategory("All"); fetchScholarships(true); }} className="text-xs hover:underline" style={{ color: "var(--gold)" }}>
@@ -516,7 +620,7 @@ export default function ScholarshipSearchPage() {
  <div className="flex items-center justify-center py-24">
  <div className="flex flex-col items-center gap-3">
  <Loader2 className="w-8 h-8 animate-spin" style={{ color: "var(--gold)" }} />
- <p className="text-sm" style={{ color: "var(--text-2)" }}>Loading scholarships…</p>
+ <p className="text-sm" style={{ color: "var(--text-2)" }}>Loading scholarships...</p>
  </div>
  </div>
  ) : displayed.length === 0 ? (
@@ -531,15 +635,16 @@ export default function ScholarshipSearchPage() {
  ) : (
  <>
  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
- {displayed.map((s, idx) => {
- const realIdx = eligibleOnly ? scholarships.indexOf(s) : idx;
+ {displayed.map(({ scholarship: s, eligResult, score, reason }) => {
  return (
  <ScholarshipCard
  key={s.id}
  scholarship={s}
  isSaved={savedIds.has(s.applicationUrl ?? s.name)}
  onSave={handleSave}
- eligResult={eligResults[realIdx] ?? { status: "unknown", blocking: [], passing: [] }}
+ eligResult={eligResult}
+ matchScore={score}
+ matchReason={reason}
  />
  );
  })}
@@ -565,8 +670,7 @@ export default function ScholarshipSearchPage() {
  ))}
  </div>
  <p className="text-xs mt-3" style={{ color: "var(--text-3)" }}>
- Data scraped from public pages of partner sites. Click &ldquo;Refresh Data&rdquo; to pull the latest listings.
- Eligibility screening uses your profile, <Link href="/profile" className="underline" style={{ color: "var(--gold)" }}>complete your profile</Link> for accurate results.
+ Listings come from public scholarship pages and Audri&apos;s curated catalog. Complete your profile so matching can use your actual eligibility.
  </p>
  </div>
  </div>

@@ -26,9 +26,16 @@ export async function POST(req: NextRequest) {
  }
  const reservation = await reserveEssay(userEmail);
  if (!reservation.allowed) {
+ const paidLimit = reservation.user?.plan === "pro";
  return NextResponse.json(
- { error: `You've used all ${FREE_ESSAY_LIMIT} free essays. Upgrade to Audri Pro for unlimited essays.`, paywall: true, remaining: 0 },
- { status: 402 }
+ {
+ error: paidLimit
+ ? "You've reached this plan's monthly fair-use limit. Try again when your usage window resets."
+ : `You've used this week's ${FREE_ESSAY_LIMIT} free essays. Upgrade for more essay access.`,
+ paywall: !paidLimit,
+ remaining: 0,
+ },
+ { status: paidLimit ? 429 : 402 }
  );
  }
  reservedFor = userEmail;
@@ -44,9 +51,16 @@ export async function POST(req: NextRequest) {
 
  const reservation = await reserveEssay(userEmail);
  if (!reservation.allowed) {
+ const paidLimit = reservation.user?.plan === "pro";
  return NextResponse.json(
- { error: `You've used all ${FREE_ESSAY_LIMIT} free essays. Upgrade to Audri Pro for unlimited essays.`, paywall: true, remaining: 0 },
- { status: 402 }
+ {
+ error: paidLimit
+ ? "You've reached this plan's monthly fair-use limit. Try again when your usage window resets."
+ : `You've used this week's ${FREE_ESSAY_LIMIT} free essays. Upgrade for more essay access.`,
+ paywall: !paidLimit,
+ remaining: 0,
+ },
+ { status: paidLimit ? 429 : 402 }
  );
  }
  reservedFor = userEmail;
@@ -60,6 +74,7 @@ export async function POST(req: NextRequest) {
  extraNotes,
  scholarshipName: scholarshipName ?? "Scholarship Application",
  scholarshipMission,
+ telemetry: { route: "generate-essay", userEmail, plan: reservation.user?.plan ?? "free" },
  };
 
  const strategy = await generateEssayStrategy(input);

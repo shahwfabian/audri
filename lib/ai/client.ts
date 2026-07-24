@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { recordAIUsage } from "@/lib/ai/usage";
 
 let _envClient: Anthropic | null = null;
 
@@ -33,6 +34,11 @@ function requireModel(m: string): string {
 export interface CallOptions {
   maxTokens?: number;
   temperature?: number;
+  route?: string;
+  phase?: string;
+  userEmail?: string;
+  plan?: string;
+  model?: "default" | "fast";
 }
 
 export async function callAI(
@@ -45,8 +51,13 @@ export async function callAI(
 
   const client = getAnthropicClient();
 
+  const model = requireModel(opts.model === "fast" ? AI_MODEL_FAST : AI_MODEL);
+  const route = opts.route ?? "unknown";
+  const phase = opts.phase ?? "generation";
+
+  try {
   const message = await client.messages.create({
-    model: requireModel(AI_MODEL),
+    model,
     max_tokens: opts.maxTokens ?? 4096,
     ...(opts.temperature !== undefined ? { temperature: opts.temperature } : {}),
     system: systemPrompt,
@@ -55,7 +66,29 @@ export async function callAI(
 
   const content = message.content[0];
   if (content.type !== "text") throw new Error("Unexpected response type");
+  await recordAIUsage({
+    route,
+    phase,
+    model,
+    userEmail: opts.userEmail,
+    plan: opts.plan,
+    inputTokens: message.usage.input_tokens,
+    outputTokens: message.usage.output_tokens,
+    success: true,
+  });
   return content.text;
+  } catch (error) {
+    await recordAIUsage({
+      route,
+      phase,
+      model,
+      userEmail: opts.userEmail,
+      plan: opts.plan,
+      success: false,
+      errorCode: error instanceof Error ? error.message.slice(0, 120) : "unknown",
+    });
+    throw error;
+  }
 }
 
 export async function callAIJSON<T>(
