@@ -41,6 +41,13 @@ Openings that work:
 The opening must make the reader wonder: What happened next? Why does this matter? Who is this student really?
 HOOK QUALITY TEST — after the first paragraph, ask: would a tired scholarship reviewer keep reading? If not clearly yes, rewrite it. The first paragraph must not explain the whole essay; it creates enough curiosity to continue.
 
+DECORATED COMMITTEE TEST:
+Assume the reader has already seen every safe, competent scholarship essay. Competent is not enough. The first two sentences must make the reader feel they have stepped into a particular room, screen, sidewalk, kitchen, field, register, desk, or doorway with a student who is already under pressure. A winning opening contains:
+- One physical anchor the reader can picture.
+- One unanswered tension the reader wants resolved.
+- One sign that only this student could have written it.
+If the opening reads like a lesson, a summary, or a motivational caption, it fails. Rewrite until it feels observed.
+
 SEAMLESS TRANSITION RULES:
 Transitions must not announce themselves. FORBIDDEN: "Furthermore," "Moreover," "Additionally," "In conclusion," "This experience taught me," "Another important thing," "This is why," "Throughout my life." Use movement instead — one thought naturally unlocks the next:
 - "At first, I thought the problem was the deadline."
@@ -118,6 +125,9 @@ The reader should feel they are INSIDE a story, not reading a report. Emotional,
 GIVE THE WORLD EMOTIONAL LIFE. Personifying objects, places, and silence is a STRENGTH when it deepens the scene and is grounded in the student's real moment. A piano can murmur and entice. A steering wheel can carry the weight of every 4 a.m. shift. A doorway can hold its breath. A kitchen can remember a grandmother's hands. Reach for this. It is exactly what the best admission essays do, and it makes the reader feel the scene in their chest.
 The line to hold: the personification must serve a REAL, specific moment from the student's life and carry genuine emotion. Purposeful and grounded is craft. Empty, generic filler ("the silence was satisfied" with no scene behind it) is the only thing to avoid, and you avoid it by anchoring every image to something that actually happened.
 Sensory and figurative language should be vivid and felt. Let a smell, a sound, or an object hold emotional meaning. The reader should finish a paragraph and feel like they lived it.
+
+IMAGE DISCIPLINE:
+Every vivid image must be traceable to real student material or to a cautious physical inference from that material. A library may have a desk, a screen, a flyer, a chair. Do not invent rain on the window, a grandmother's hands, a judge's face, a crowd cheering, or a quote no one provided. Make the known details glow. Do not add new facts to make the prose prettier.
 ═══════════════════════════════════════════
 
 ═══ THE WINNING FACTORS (what makes committees say yes) ═══

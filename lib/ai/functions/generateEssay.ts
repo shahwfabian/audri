@@ -32,6 +32,8 @@ interface EssayStrategyResult {
   strategy: string;
   selectedStoryTitle: string;
   centralScene: string;
+  imageLedger?: string[];
+  committeeHookVerdict?: string;
   whyChain: string[];
   keyThemes: string[];
   openingHook: string;
@@ -115,7 +117,9 @@ ${input.extraNotes ? `\nSTUDENT'S NOTES FOR THIS SPECIFIC SCHOLARSHIP (treat as 
 export async function generateEssayStrategy(
   input: EssayGenerationInput
 ): Promise<EssayStrategyResult> {
-  const prompt = `Build the winning strategy for this essay BEFORE any writing happens. Think like the Tanabe workshop: find the angle that passes the Thumb Test, pick ONE scene, run the "but why?" chain, and define the growth arc.
+  const prompt = `Build the winning strategy for this essay BEFORE any writing happens. Think like the Tanabe workshop and the strictest scholarship committee in the room: find the angle that passes the Thumb Test, pick ONE scene, run the "but why?" chain, and define the growth arc.
+
+Committee standard: the first 10 seconds decide whether the reader leans in. Locate the live object, sound, gesture, or pressure point that makes the opening feel witnessed instead of summarized. Vivid writing is required, but every image must come from provided student material or a cautious physical inference from that material. Do not invent new events, people, awards, dialogue, settings, or outcomes.
 
 SCHOLARSHIP: ${input.scholarshipName}
 ${input.scholarshipMission ? `WHAT THE FUNDER VALUES: ${input.scholarshipMission}` : ""}
@@ -131,6 +135,8 @@ Return JSON:
   "strategy": "2-3 sentences: the unique angle and why it passes the Thumb Test (no other applicant could write it)",
   "selectedStoryTitle": "which story/experience anchors the essay",
   "centralScene": "the ONE specific moment the essay opens inside — place, action, sensory anchors, drawn only from the student's real material",
+  "imageLedger": ["3-5 concrete images, objects, sounds, gestures, or textures the essay may safely use because they are grounded in the student's material"],
+  "committeeHookVerdict": "why the first 2 sentences would make a tired scholarship committee member keep reading; if the answer is weak, rewrite the hook before returning JSON",
   "whyChain": ["surface answer", "deeper why", "deepest why — the real motivation the essay must reach"],
   "keyThemes": ["theme1", "theme2"],
   "openingHook": "the actual first 1-2 sentences — in-scene, tension/motion/image, no warm-up, no thesis, no 'from a young age'. Would a tired reviewer keep reading? If not, it fails.",
@@ -168,6 +174,8 @@ TARGET LENGTH: ${target} words — NEVER exceed it; land just under (within ~5%)
 LOCKED STRATEGY:
 - Angle: ${strategy.strategy}
 - Central scene: ${strategy.centralScene}
+- Safe image ledger: ${(strategy.imageLedger ?? []).join(" | ") || "use only concrete details already present in the student material"}
+- Committee hook verdict: ${strategy.committeeHookVerdict ?? "the first 2 sentences must make a tired reviewer lean in"}
 - Opening hook: ${strategy.openingHook}
 - Why-chain to reach: ${strategy.whyChain.join(" → ")}
 - Growth arc: ${strategy.growthArc}
@@ -184,23 +192,29 @@ ${input.toneDirective ? `\nVOICE & TONE (the student chose this — honor it in 
 THE STUDENT'S REAL MATERIAL (you may not use anything not present here):
 ${buildStudentDossier(input)}
 
+AWARD COMMITTEE STANDARD: write as if the first reader has 200 essays left and one hand already moving toward the next file. The opening must create pressure in the room within two sentences. A strong hook has at least one concrete image plus one unanswered tension. If the opening can be copied into another student's essay, rewrite it.
+
+VIVIDNESS STANDARD: every major paragraph needs one grounded physical anchor: an object, sound, gesture, place, texture, screen, paper, doorway, table, uniform, clock, or tool from the student's real material. Use the safe image ledger first. Personification is welcome only when anchored to the scene. No decorative fog. No invented dialogue. No invented weather. No invented family facts.
+
 PARAGRAPH RHYTHM: break on emotional pressure, not structure. Vary lengths — a one-sentence paragraph when a realization lands; longer ones to build a scene. No five equal blocks. Transitions must be invisible movement ("The harder part came later."), never academic connectors.
 
 FINAL NARRATIVE AUDIT — run every question before you output; if any answer is no, revise first:
 1. Does the first sentence hook immediately — would a tired scholarship reviewer keep reading?
-2. Does the first paragraph create curiosity without explaining the whole essay?
-3. Does the essay begin with story instead of explanation?
-4. Do the transitions feel natural instead of academic?
-5. Do the paragraph breaks create rhythm — does it look human on the page?
-6. Is every claimed trait shown in action, never stated?
-7. Does the why-chain's deepest answer surface through reflection, not announcement?
-8. Does the ending open a loop instead of closing too perfectly?
-9. Does the final line leave emotional residue — the reader wanting more?
-10. Does the essay feel like a person, not a template?
-11. Would THIS funder finish it thinking "this student is what we fund" — alignment embodied, never announced?
-12. Does the reader feel they are investing in a rising student, not rescuing a hardship case?
-13. Is it under the word limit with every question in the prompt answered?
-14. HOUSE STYLE: zero em dashes anywhere, and zero three-item lists / tricolons. If either appears, rewrite before returning.
+2. Do the first two sentences contain a concrete image and unanswered tension?
+3. Does the first paragraph create curiosity without explaining the whole essay?
+4. Does the essay begin with story instead of explanation?
+5. Does each major paragraph have a grounded physical anchor from the known facts?
+6. Do the transitions feel natural instead of academic?
+7. Do the paragraph breaks create rhythm — does it look human on the page?
+8. Is every claimed trait shown in action, never stated?
+9. Does the why-chain's deepest answer surface through reflection, not announcement?
+10. Does the ending open a loop instead of closing too perfectly?
+11. Does the final line leave emotional residue — the reader wanting more?
+12. Does the essay feel like a person, not a template?
+13. Would THIS funder finish it thinking "this student is what we fund" — alignment embodied, never announced?
+14. Does the reader feel they are investing in a rising student, not rescuing a hardship case?
+15. Is it under the word limit with every question in the prompt answered?
+16. HOUSE STYLE: zero em dashes anywhere, and zero three-item lists / tricolons. If either appears, rewrite before returning.
 
 If the real material is thin for this exact prompt, still write the strongest honest essay draft possible. Use only known facts. Put missing personal facts in clear brackets like [specific job], [one moment this system failed you], or [person you helped]. Never stop to advise the student. Never list what you need. Never explain that you cannot fabricate.
 

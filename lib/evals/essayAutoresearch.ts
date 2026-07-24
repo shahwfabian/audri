@@ -32,6 +32,58 @@ function includesIdea(text: string, idea: string): boolean {
     .some((option) => option.trim() && haystack.includes(option.trim()));
 }
 
+function openingSentences(text: string, count: number): string {
+  const sentences = text.trim().match(/[^.!?]+[.!?]+["')\]]*|[^.!?]+$/g) ?? [];
+  return sentences.slice(0, count).join(" ");
+}
+
+function hasCommitteeGradeOpening(text: string): boolean {
+  const opening = normalize(openingSentences(text, 2));
+  const physicalAnchors = [
+    "box",
+    "boxes",
+    "cardboard",
+    "paper",
+    "form",
+    "folder",
+    "screen",
+    "spreadsheet",
+    "table",
+    "desk",
+    "door",
+    "chair",
+    "computer",
+    "pen",
+    "pencil",
+    "flyer",
+    "binder",
+    "clock",
+    "light",
+    "room",
+    "kitchen",
+    "library",
+    "pantry",
+    "phone",
+  ];
+  const tensionWords = [
+    "deadline",
+    "missed",
+    "closed",
+    "hesitated",
+    "waited",
+    "fought",
+    "stuck",
+    "empty",
+    "quiet",
+    "late",
+    "before",
+    "after",
+    "couldn't",
+    "could not",
+  ];
+  return physicalAnchors.some((word) => opening.includes(word)) && tensionWords.some((word) => opening.includes(word));
+}
+
 export function evaluateEssayFixture(fixture: EssayEvalFixture): EssayEvalResult {
   const essay = fixture.essay.trim();
   const wordCount = countWords(essay);
@@ -46,6 +98,7 @@ export function evaluateEssayFixture(fixture: EssayEvalFixture): EssayEvalResult
     coversRequiredIdeas: missingRequiredIdeas.length === 0,
     referencesStudentFacts: fixture.studentFacts.some((fact) => includesIdea(essay, fact)),
     referencesScholarshipFacts: fixture.scholarshipFacts.some((fact) => includesIdea(essay, fact)),
+    committeeGradeOpening: hasCommitteeGradeOpening(essay),
   };
 
   const gateScore = Object.values(gates).filter(Boolean).length / Object.values(gates).length;

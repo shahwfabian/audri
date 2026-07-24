@@ -8,6 +8,7 @@ test("autoresearch essay eval passes grounded synthetic essay", () => {
   assert.equal(result.status, "pass");
   assert.equal(result.forbiddenClaimsFound.length, 0);
   assert.equal(result.missingRequiredIdeas.length, 0);
+  assert.equal(result.gates.committeeGradeOpening, true);
 });
 
 test("autoresearch essay eval catches fabricated and stylistically risky essay", () => {
@@ -15,6 +16,7 @@ test("autoresearch essay eval catches fabricated and stylistically risky essay",
   assert.equal(result.status, "fail");
   assert.equal(result.gates.noForbiddenClaims, false);
   assert.equal(result.gates.noSuspectedTricolon, false);
+  assert.equal(result.gates.committeeGradeOpening, false);
   assert.ok(result.forbiddenClaimsFound.includes("founded the pantry"));
 });
 
