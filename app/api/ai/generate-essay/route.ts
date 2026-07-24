@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
  const reservation = await reserveEssay(userEmail);
  if (!reservation.allowed) {
  return NextResponse.json(
- { error: `You've used all ${FREE_ESSAY_LIMIT} free essays. Upgrade to Audri Pro for unlimited essays.`, paywall: true, remaining: 0 },
+ { error: `You've used this week's ${FREE_ESSAY_LIMIT} free essays. Upgrade for unlimited essays.`, paywall: true, remaining: 0 },
  { status: 402 }
  );
  }
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
  const reservation = await reserveEssay(userEmail);
  if (!reservation.allowed) {
  return NextResponse.json(
- { error: `You've used all ${FREE_ESSAY_LIMIT} free essays. Upgrade to Audri Pro for unlimited essays.`, paywall: true, remaining: 0 },
+ { error: `You've used this week's ${FREE_ESSAY_LIMIT} free essays. Upgrade for unlimited essays.`, paywall: true, remaining: 0 },
  { status: 402 }
  );
  }

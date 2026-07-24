@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession, enforceRateLimit } from "@/lib/auth/guards";
 import { findUser, setSubscription } from "@/lib/auth/users";
 import { getStripe } from "@/lib/billing/stripe";
+import { getBillingPlan, getBillingPriceId } from "@/lib/billing/plans";
 
 export async function POST(req: NextRequest) {
  try {
@@ -10,7 +11,9 @@ export async function POST(req: NextRequest) {
   const limited = await enforceRateLimit("checkout:" + auth.session.userId, 5, 15 * 60_000);
   if (limited) return limited;
 
-  const priceId = process.env.STRIPE_PRO_PRICE_ID;
+  const body = await req.json().catch(() => ({})) as { plan?: string };
+  const plan = getBillingPlan(body.plan);
+  const priceId = getBillingPriceId(plan);
   if (!priceId) return NextResponse.json({ error: "Billing is not configured yet." }, { status: 503 });
 
   const user = await findUser(auth.session.email);
@@ -30,15 +33,17 @@ export async function POST(req: NextRequest) {
 
   const origin = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
   const session = await stripe.checkout.sessions.create({
-   mode: "subscription",
+   mode: plan.checkoutMode,
    customer: customerId,
    line_items: [{ price: priceId, quantity: 1 }],
    client_reference_id: user.id,
    allow_promotion_codes: true,
    success_url: origin + "/upgrade?checkout=success",
    cancel_url: origin + "/upgrade?checkout=cancelled",
-   subscription_data: { metadata: { audri_user_id: user.id, audri_email: user.email } },
-   metadata: { audri_user_id: user.id, audri_email: user.email },
+   ...(plan.checkoutMode === "subscription"
+    ? { subscription_data: { metadata: { audri_user_id: user.id, audri_email: user.email, audri_plan: plan.id } } }
+    : {}),
+   metadata: { audri_user_id: user.id, audri_email: user.email, audri_plan: plan.id },
   });
 
   if (!session.url) throw new Error("Stripe did not return a checkout URL.");

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import test, { after, before } from "node:test";
-import { unlinkSync } from "node:fs";
+import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
 
 const usersFile = `users.test.${randomUUID()}.json`;
 const usersPath = path.join(process.cwd(), "data", usersFile);
@@ -73,6 +73,24 @@ test("quota reservation is bounded and can be rolled back", async () => {
 
  await usersModule.releaseEssayReservation("quota@example.com");
  assert.equal((await usersModule.reserveEssay("quota@example.com")).allowed, true);
+});
+
+test("free essay quota resets every 7 days", async () => {
+ const created = await usersModule.createUser("weekly@example.com", "Weekly Student", "strong-password", true);
+ assert.ok(created.user?.token);
+ assert.equal((await usersModule.reserveEssay("weekly@example.com")).allowed, true);
+ assert.equal((await usersModule.reserveEssay("weekly@example.com")).allowed, true);
+ assert.equal((await usersModule.reserveEssay("weekly@example.com")).allowed, false);
+
+ const users = JSON.parse(readFileSync(usersPath, "utf-8")) as Array<Record<string, unknown>>;
+ const weekly = users.find((user) => user.email === "weekly@example.com");
+ assert.ok(weekly);
+ weekly.quotaWindowStartedAt = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+ writeFileSync(usersPath, JSON.stringify(users, null, 2), "utf-8");
+
+ const reset = await usersModule.reserveEssay("weekly@example.com");
+ assert.equal(reset.allowed, true);
+ assert.equal(reset.user?.essaysRemaining, 1);
 });
 
 test("essay readiness is advisory instead of a flagship blocker", async () => {

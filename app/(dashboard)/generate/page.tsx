@@ -203,7 +203,7 @@ export default function GeneratePage() {
  Audri reads the scholarship and writes from your real story. When a funder page is available, it checks public context first.
  </p>
  <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-xs" style={{ color: "var(--text-3)" }}>
- <span>2 essays free</span>
+ <span>2 essays free every 7 days</span>
  <span aria-hidden="true">/</span>
  <span>Built from your details</span>
  </div>
@@ -361,7 +361,7 @@ export default function GeneratePage() {
  <p className="text-xs mt-3 text-right" style={{ color: displayedQuota.remaining !== null && displayedQuota.remaining <= 1 ? "var(--gold)" : "var(--text-3)" }}>
  {displayedQuota.remaining === null
  ? "Audri Pro, unlimited essays"
- : `${displayedQuota.remaining} of 2 free ${displayedQuota.remaining === 1 ? "essay" : "essays"} left / `}
+ : `${displayedQuota.remaining} of 2 weekly ${displayedQuota.remaining === 1 ? "essay" : "essays"} left / `}
  {displayedQuota.remaining !== null && (
  <Link href="/upgrade" className="font-semibold hover:underline" style={{ color: "var(--gold)" }}>Go unlimited</Link>
  )}
@@ -373,7 +373,7 @@ export default function GeneratePage() {
  {paywalled && !generating && (
  <div className="rounded-2xl p-8 text-center" style={{ background: "var(--gold-10)", border: "1px solid var(--gold-25)", boxShadow: "0 0 60px var(--gold-10)" }}>
  <h2 className="text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
- You&apos;ve used your 2 free essays.
+ You&apos;ve used this week&apos;s 2 free essays.
  </h2>
  <p className="text-sm max-w-md mx-auto mb-5" style={{ color: "var(--text-2)", lineHeight: 1.7 }}>
  Upgrade when you want Audri to keep drafting from your real profile for every scholarship you choose.

@@ -81,7 +81,7 @@ export default function SignupPage() {
  <span className="text-gradient">operating system.</span>
  </h2>
  <p className="text-base leading-relaxed mb-10" style={{ color: "var(--text-2)" }}>
- Start with 2 free essays. No card required.
+ Start with 2 free essays every 7 days. No card required.
  </p>
 
  <div className="space-y-4">
@@ -111,7 +111,7 @@ export default function SignupPage() {
  </div>
 
  <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--text)" }}>Create your account</h1>
- <p className="text-sm mb-8" style={{ color: "var(--text-2)" }}>Start with 2 free essays. A guided setup helps you build your scholarship profile.</p>
+ <p className="text-sm mb-8" style={{ color: "var(--text-2)" }}>Start with 2 free essays every 7 days. A guided setup helps you build your scholarship profile.</p>
 
  <form onSubmit={handleSubmit} className="space-y-4">
  <div>

@@ -53,5 +53,8 @@ next-env.d.ts
 /data/users.test.*.json.*.tmp
 /data/.secret
 
+.vercel
+.env*
+
 # ...but do commit the template
 !.env.example

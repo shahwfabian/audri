@@ -12,6 +12,9 @@ process.env.AUDRI_SECRET = "audri-billing-test-secret-with-sufficient-length";
 process.env.STRIPE_SECRET_KEY = "sk_test_audri_offline_fixture";
 process.env.STRIPE_WEBHOOK_SECRET = "whsec_audri_offline_fixture";
 process.env.STRIPE_PRO_PRICE_ID = "price_audri_pro_test";
+process.env.STRIPE_STUDENT_PRICE_ID = "price_audri_student_test";
+process.env.STRIPE_POWER_PRICE_ID = "price_audri_power_test";
+process.env.STRIPE_SPRINT_PRICE_ID = "price_audri_sprint_test";
 process.env.NEXT_PUBLIC_APP_URL = "https://audri.example";
 
 let NextRequest: typeof import("next/server").NextRequest;
@@ -113,13 +116,50 @@ test("checkout uses the authenticated account and configured recurring price", a
  assert.equal(customerInput?.name, "Checkout Student");
  assert.equal(checkoutInput?.mode, "subscription");
  assert.equal(checkoutInput?.customer, "cus_checkout_test");
- assert.deepEqual(checkoutInput?.line_items, [{ price: "price_audri_pro_test", quantity: 1 }]);
+ assert.deepEqual(checkoutInput?.line_items, [{ price: "price_audri_student_test", quantity: 1 }]);
  assert.equal(checkoutInput?.success_url, "https://audri.example/upgrade?checkout=success");
  assert.equal(checkoutInput?.cancel_url, "https://audri.example/upgrade?checkout=cancelled");
 
  const stored = await usersModule.findUser("checkout@example.com");
  assert.equal(stored?.stripeCustomerId, "cus_checkout_test");
  assert.equal(stored?.plan, "free");
+});
+
+test("checkout supports power subscriptions and sprint one-time passes", async () => {
+ const created = await usersModule.createUser(
+  "plans@example.com",
+  "Plans Student",
+  "strong-password",
+  true
+ );
+ assert.ok(created.user?.token);
+
+ const stripe = stripeModule.getStripe();
+ const checkoutInputs: Record<string, unknown>[] = [];
+ (stripe.customers as unknown as { create: (input: Record<string, unknown>) => Promise<{ id: string }> }).create =
+  async () => ({ id: "cus_plans_test" });
+ (stripe.checkout.sessions as unknown as {
+  create: (input: Record<string, unknown>) => Promise<{ url: string }>;
+ }).create = async (input) => {
+  checkoutInputs.push(input);
+  return { url: "https://checkout.stripe.test/session" };
+ };
+
+ await checkoutRoute.POST(new NextRequest("http://localhost/api/billing/checkout", {
+  method: "POST",
+  headers: { Authorization: `Bearer ${created.user.token}`, "Content-Type": "application/json" },
+  body: JSON.stringify({ plan: "power" }),
+ }));
+ await checkoutRoute.POST(new NextRequest("http://localhost/api/billing/checkout", {
+  method: "POST",
+  headers: { Authorization: `Bearer ${created.user.token}`, "Content-Type": "application/json" },
+  body: JSON.stringify({ plan: "sprint" }),
+ }));
+
+ assert.equal(checkoutInputs[0].mode, "subscription");
+ assert.deepEqual(checkoutInputs[0].line_items, [{ price: "price_audri_power_test", quantity: 1 }]);
+ assert.equal(checkoutInputs[1].mode, "payment");
+ assert.deepEqual(checkoutInputs[1].line_items, [{ price: "price_audri_sprint_test", quantity: 1 }]);
 });
 
 test("signed subscription webhooks upgrade, downgrade, and cancel access", async () => {
@@ -209,6 +249,32 @@ test("checkout completion retrieves and reconciles the subscription", async () =
  assert.equal(stored?.plan, "pro");
  assert.equal(stored?.subscriptionStatus, "active");
  assert.equal(stored?.stripeSubscriptionId, "sub_completed_test");
+});
+
+test("sprint checkout grants four months of pro access", async () => {
+ const created = await usersModule.createUser(
+  "sprint@example.com",
+  "Sprint Student",
+  "strong-password",
+  true
+ );
+ assert.ok(created.user);
+
+ const completed = stripeEvent("checkout.session.completed", {
+  id: "cs_sprint_test",
+  object: "checkout.session",
+  mode: "payment",
+  payment_status: "paid",
+  customer: "cus_sprint_test",
+  metadata: { audri_email: created.user.email, audri_plan: "sprint" },
+ });
+ assert.equal((await webhookRoute.POST(signedRequest(completed))).status, 200);
+
+ const stored = await usersModule.findUser("sprint@example.com");
+ assert.equal(stored?.plan, "pro");
+ assert.equal(stored?.subscriptionStatus, "active");
+ assert.ok(stored?.proExpiresAt);
+ assert.ok(new Date(stored.proExpiresAt!).getTime() > Date.now() + 100 * 24 * 60 * 60 * 1000);
 });
 
 test("webhooks reject invalid signatures without changing access", async () => {

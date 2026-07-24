@@ -67,19 +67,30 @@ test("students missing essay material get an inline quality nudge without blocki
  assert.match(generator, /isNonEssayResponse/);
 });
 
-test("first essay flow states the 2 essay allowance without a manual detour", () => {
+test("first essay flow states the weekly 2 essay allowance without a manual detour", () => {
  const page = read("app/(dashboard)/generate/page.tsx");
  const signup = read("app/(auth)/signup/page.tsx");
  const users = read("lib/auth/users.ts");
  const env = read(".env.example");
- assert.match(page, /2 essays free/);
- assert.match(signup, /Start with 2 free essays/);
- assert.match(page, /of 2 free/);
+ assert.match(page, /2 essays free every 7 days/);
+ assert.match(signup, /Start with 2 free essays every 7 days/);
+ assert.match(page, /of 2 weekly/);
  assert.doesNotMatch(page, /Open the Manual/);
  assert.doesNotMatch(page, /How it works/);
  assert.doesNotMatch(page, /one win pays/i);
  assert.match(users, /AUDRI_FREE_ESSAYS \?\? "2"/);
+ assert.match(users, /FREE_ESSAY_WINDOW_MS = 7/);
  assert.match(env, /AUDRI_FREE_ESSAYS=2/);
+});
+
+test("upgrade page defines the three paid plans", () => {
+ const page = read("app/(dashboard)/upgrade/page.tsx");
+ const plans = read("lib/billing/plans.ts");
+ assert.match(page, /Choose your scholarship season/);
+ assert.match(plans, /id: "student"[\s\S]*price: "\$9"/);
+ assert.match(plans, /id: "power"[\s\S]*price: "\$19"/);
+ assert.match(plans, /id: "sprint"[\s\S]*price: "\$49"[\s\S]*durationMonths: 4/);
+ assert.match(plans, /Four months of Pro access/);
 });
 
 test("first session navigation keeps only the core product paths", () => {

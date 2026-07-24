@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe, subscriptionPlan } from "@/lib/billing/stripe";
 import { findUserByStripeCustomer, setSubscription } from "@/lib/auth/users";
+import { sprintExpiry } from "@/lib/billing/plans";
 
 async function reconcileSubscription(subscription: Stripe.Subscription) {
  const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
@@ -46,6 +47,16 @@ export async function POST(req: NextRequest) {
    if (typeof session.subscription === "string") {
     const subscription = await getStripe().subscriptions.retrieve(session.subscription);
     await reconcileSubscription(subscription);
+   } else if (session.mode === "payment" && session.payment_status === "paid") {
+    const email = session.metadata?.audri_email ?? session.customer_details?.email;
+    if (!email) throw new Error("Paid checkout session has no Audri email.");
+    const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
+    await setSubscription(email, {
+     plan: "pro",
+     customerId,
+     status: "active",
+     proExpiresAt: sprintExpiry(),
+    });
    }
   }
   return NextResponse.json({ received: true });
@@ -54,4 +65,3 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ error: "Webhook processing failed." }, { status: 500 });
  }
 }
-

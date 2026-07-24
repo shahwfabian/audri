@@ -10,6 +10,7 @@ const TERMS_VERSION = "2026-07-13";
 const PENDING_SIGNUP_TTL_MS = 30 * 60_000;
 
 export const FREE_ESSAY_LIMIT = Math.max(1, parseInt(process.env.AUDRI_FREE_ESSAYS ?? "2", 10) || 2);
+export const FREE_ESSAY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 export interface StoredUser {
  id: string;
@@ -18,8 +19,10 @@ export interface StoredUser {
  passwordHash: string;
  plan: "free" | "pro";
  essaysGenerated: number;
+ quotaWindowStartedAt?: string;
  createdAt: string;
  upgradedAt?: string;
+ proExpiresAt?: string;
  profileEnc?: string;
  workspaceEnc?: string;
  stripeCustomerId?: string;
@@ -51,8 +54,10 @@ type DatabaseRow = {
  password_hash: string;
  plan: "free" | "pro";
  essays_generated: number;
+ quota_window_started_at?: string | null;
  created_at: string;
  upgraded_at?: string | null;
+ pro_expires_at?: string | null;
  profile_enc?: string | null;
  workspace_enc?: string | null;
  stripe_customer_id?: string | null;
@@ -86,8 +91,10 @@ function fromDatabase(row: DatabaseRow): StoredUser {
   passwordHash: row.password_hash,
   plan: row.plan,
   essaysGenerated: row.essays_generated,
+  quotaWindowStartedAt: row.quota_window_started_at ?? row.created_at,
   createdAt: row.created_at,
   upgradedAt: row.upgraded_at ?? undefined,
+  proExpiresAt: row.pro_expires_at ?? undefined,
   profileEnc: row.profile_enc ?? undefined,
   workspaceEnc: row.workspace_enc ?? undefined,
   stripeCustomerId: row.stripe_customer_id ?? undefined,
@@ -171,14 +178,32 @@ function validateAccountInput(email: string, name: string, password: string, acc
  return null;
 }
 
+function weeklyUsage(user: StoredUser, now = Date.now()): { used: number; windowStartedAt: string } {
+ const startedAt = user.quotaWindowStartedAt ?? user.createdAt;
+ const started = Date.parse(startedAt);
+ if (!Number.isFinite(started) || now - started >= FREE_ESSAY_WINDOW_MS) {
+  return { used: 0, windowStartedAt: new Date(now).toISOString() };
+ }
+ return { used: user.essaysGenerated, windowStartedAt: startedAt };
+}
+
+function hasPaidAccess(user: StoredUser, now = Date.now()): boolean {
+ if (user.plan !== "pro") return false;
+ if (!user.proExpiresAt) return true;
+ const expires = Date.parse(user.proExpiresAt);
+ return Number.isFinite(expires) && expires > now;
+}
+
 export function toPublic(user: StoredUser, withToken = false): PublicUser {
+ const paid = hasPaidAccess(user);
+ const usage = weeklyUsage(user);
  return {
   id: user.id,
   email: user.email,
   name: user.name,
-  plan: user.plan,
-  essaysGenerated: user.essaysGenerated,
-  essaysRemaining: user.plan === "pro" ? null : Math.max(0, FREE_ESSAY_LIMIT - user.essaysGenerated),
+  plan: paid ? "pro" : "free",
+  essaysGenerated: usage.used,
+  essaysRemaining: paid ? null : Math.max(0, FREE_ESSAY_LIMIT - usage.used),
   createdAt: user.createdAt,
   ...(withToken ? { token: issueSession(user.id, user.email, user.sessionVersion) } : {}),
  };
@@ -210,6 +235,7 @@ export async function createUser(email: string, name: string, password: string, 
   passwordHash: hashPassword(password),
   plan: "free",
   essaysGenerated: 0,
+  quotaWindowStartedAt: now,
   sessionVersion: 1,
   termsAcceptedAt: now,
   termsVersion: TERMS_VERSION,
@@ -226,6 +252,7 @@ export async function createUser(email: string, name: string, password: string, 
    password_hash: created.passwordHash,
    plan: created.plan,
    essays_generated: 0,
+   quota_window_started_at: created.quotaWindowStartedAt,
    session_version: 1,
    terms_accepted_at: created.termsAcceptedAt,
    terms_version: created.termsVersion,
@@ -320,6 +347,7 @@ export async function completePendingSignup(email: string): Promise<{ user?: Pub
   password_hash: pending.password_hash,
   plan: "free",
   essays_generated: 0,
+  quota_window_started_at: verifiedAt,
   session_version: 1,
   terms_accepted_at: pending.terms_accepted_at,
   terms_version: pending.terms_version,
@@ -357,8 +385,9 @@ export async function verifyAccountPassword(email: string, password: string): Pr
 export async function checkEssayQuota(email: string): Promise<{ allowed: boolean; remaining: number | null; plan: "free" | "pro" }> {
  const user = await findUser(email);
  if (!user) return { allowed: false, remaining: 0, plan: "free" };
- if (user.plan === "pro") return { allowed: true, remaining: null, plan: "pro" };
- const remaining = FREE_ESSAY_LIMIT - user.essaysGenerated;
+ if (hasPaidAccess(user)) return { allowed: true, remaining: null, plan: "pro" };
+ const usage = weeklyUsage(user);
+ const remaining = FREE_ESSAY_LIMIT - usage.used;
  return { allowed: remaining > 0, remaining: Math.max(0, remaining), plan: "free" };
 }
 
@@ -376,7 +405,12 @@ export async function reserveEssay(email: string): Promise<{ allowed: boolean; u
  return updateLocal((users) => {
   const user = users.find((candidate) => candidate.email === normalize(email));
   if (!user) return { allowed: false, user: null };
-  if (user.plan !== "pro" && user.essaysGenerated >= FREE_ESSAY_LIMIT) return { allowed: false, user: toPublic(user) };
+  if (!hasPaidAccess(user)) {
+   const usage = weeklyUsage(user);
+   if (usage.used >= FREE_ESSAY_LIMIT) return { allowed: false, user: toPublic(user) };
+   user.essaysGenerated = usage.used;
+   user.quotaWindowStartedAt = usage.windowStartedAt;
+  }
   user.essaysGenerated += 1;
   return { allowed: true, user: toPublic(user) };
  });
@@ -437,6 +471,7 @@ export async function setSubscription(email: string, details: {
  customerId?: string | null;
  subscriptionId?: string | null;
  status?: string | null;
+ proExpiresAt?: string | null;
 }): Promise<PublicUser | null> {
  const database = getAdminDatabase();
  const timestamp = new Date().toISOString();
@@ -446,6 +481,7 @@ export async function setSubscription(email: string, details: {
    stripe_customer_id: details.customerId,
    stripe_subscription_id: details.subscriptionId,
    subscription_status: details.status,
+   pro_expires_at: details.proExpiresAt,
    upgraded_at: details.plan === "pro" ? timestamp : null,
    updated_at: timestamp,
   }).eq("email", normalize(email)).select("*").maybeSingle();
@@ -460,6 +496,7 @@ export async function setSubscription(email: string, details: {
   user.stripeCustomerId = details.customerId ?? undefined;
   user.stripeSubscriptionId = details.subscriptionId ?? undefined;
   user.subscriptionStatus = details.status ?? undefined;
+  user.proExpiresAt = details.proExpiresAt ?? undefined;
   user.upgradedAt = details.plan === "pro" ? timestamp : undefined;
   return toPublic(user);
  });
